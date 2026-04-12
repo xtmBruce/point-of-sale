@@ -16,10 +16,7 @@ import OrderEdit from './pages/OrderEdit';
 import SalesDashboard from './pages/SalesDashboard';
 import Shops from './pages/Shops';
 import Perfumes from './pages/Perfumes';
-// SMART BOTTLING - COMMENTED OUT (Advanced recipe-based bottling system)
-// Features: Recipe management, raw materials inventory, forecasting, analytics
-// Uncomment if you need: Production-scale operations, detailed cost tracking, material forecasting
-// import SmartBottling from './pages/SmartBottling';
+
 import Production from './pages/Production';
 import Procurement from './pages/Procurement';
 import Notifications from './pages/Notifications';
