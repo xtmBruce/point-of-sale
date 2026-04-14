@@ -8,8 +8,8 @@ import {
   DollarSign, BarChart3, Settings, FileText, Calendar, Users, Zap, Barcode
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ShortBarcodeGenerator from '../components/ShortBarcodeGenerator';
-import CurrencyInput from '../components/CurrencyInput';
+import ShortBarcodeGenerator from '../Components/ShortBarcodeGenerator';
+import CurrencyInput from '../Components/CurrencyInput';
 import { smartBottlingAPI, procurementAPI, perfumeAPI } from '../lib/api';
 
 const SmartBottling = () => {

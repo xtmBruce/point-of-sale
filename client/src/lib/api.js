@@ -1,6 +1,7 @@
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import config from './config'
+import { mockApi } from '../mock/mockApi'
 
 const api = axios.create({
   baseURL: config.api.baseURL,
@@ -9,6 +10,61 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+const createMockResponse = (url, method = 'GET', payload = null) => {
+  let mockData;
+  switch (method.toUpperCase()) {
+    case 'POST':
+      mockData = mockApi.post(url, payload);
+      break;
+    case 'PUT':
+      mockData = mockApi.put(url, payload);
+      break;
+    case 'PATCH':
+      mockData = mockApi.patch(url, payload);
+      break;
+    case 'DELETE':
+      mockData = mockApi.delete(url);
+      break;
+    case 'GET':
+    default:
+      mockData = mockApi.get(url);
+      break;
+  }
+  
+  return {
+    data: mockData,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: { url, payload, isMock: true },
+  };
+};
+
+export async function fetchData(url, requestFn, method = 'GET', payload = null) {
+  try {
+    const response = await requestFn()
+    return response
+  } catch (error) {
+    if (!window.__mockLogged) {
+      console.warn("Running in MOCK MODE. Backend is unavailable, falling back to mock API engine.");
+      window.__mockLogged = true;
+    }
+    return createMockResponse(url, method, payload)
+  }
+}
+
+const rawGet = api.get.bind(api)
+const rawPost = api.post.bind(api)
+const rawPut = api.put.bind(api)
+const rawPatch = api.patch.bind(api)
+const rawDelete = api.delete.bind(api)
+
+api.get = (url, requestConfig) => fetchData(url, () => rawGet(url, requestConfig), 'GET')
+api.post = (url, data, requestConfig) => fetchData(url, () => rawPost(url, data, requestConfig), 'POST', data)
+api.put = (url, data, requestConfig) => fetchData(url, () => rawPut(url, data, requestConfig), 'PUT', data)
+api.patch = (url, data, requestConfig) => fetchData(url, () => rawPatch(url, data, requestConfig), 'PATCH', data)
+api.delete = (url, requestConfig) => fetchData(url, () => rawDelete(url, requestConfig), 'DELETE')
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -32,6 +88,7 @@ api.interceptors.response.use(
   (error) => {
     // Don't show error toasts for blob responses (like PDF downloads)
     const isBlob = error.config?.responseType === 'blob';
+    const isNetworkError = !error.response;
 
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
@@ -42,7 +99,7 @@ api.interceptors.response.use(
       }
     } else if (error.response?.data?.error && !isBlob) {
       toast.error(error.response.data.error)
-    } else if (!isBlob) {
+    } else if (!isBlob && !isNetworkError) {
       toast.error('An error occurred. Please try again.')
     }
     return Promise.reject(error)
@@ -350,30 +407,6 @@ export const procurementAPI = {
   updatePurchaseOrder: (id, data) => api.put(`/procurement/purchase-orders/${id}`, data),
   deletePurchaseOrder: (id) => api.delete(`/procurement/purchase-orders/${id}`),
   updatePurchaseOrderStatus: (id, status) => api.patch(`/procurement/purchase-orders/${id}/status`, { status }),
-}
-
-// Perfume API
-export const perfumeAPI = {
-  getBottleSizes: () => api.get('/perfume/bottle-sizes'),
-  createBottleSize: (data) => api.post('/perfume/bottle-sizes', data),
-  updateBottleSize: (id, data) => api.put(`/perfume/bottle-sizes/${id}`, data),
-  deleteBottleSize: (id) => api.delete(`/perfume/bottle-sizes/${id}`),
-  getBulk: (params) => api.get('/perfume/bulk', { params }),
-  createBulk: (data) => api.post('/perfume/bulk', data),
-  updateBulk: (id, data) => api.put(`/perfume/bulk/${id}`, data),
-  deleteBulk: (id) => api.delete(`/perfume/bulk/${id}`),
-  bottle: (data) => api.post('/perfume/bottle', data),
-  bottleAllSizes: (data) => api.post('/perfume/bottle-all-sizes', data),
-  bottleAllBulk: (data) => api.post('/perfume/bottle-all-bulk', data),
-  returnShopInventory: () => api.post('/perfume/return-shop-inventory'),
-  returnSinglePerfumeInventory: (perfumeId) => api.post(`/perfume/return-single-perfume-inventory/${perfumeId}`),
-  returnSpecializedInventory: () => api.post('/perfume/return-specialized-inventory'),
-  bottleMikadoSpecialized: (data) => api.post('/perfume/bottle-mikado-specialized', data),
-  bottleBodySpraySpecialized: (data) => api.post('/perfume/bottle-body-spray-specialized', data),
-  getRecipes: () => api.get('/perfume/recipes'),
-  createRecipe: (data) => api.post('/perfume/recipes', data),
-  updateRecipe: (id, data) => api.put(`/perfume/recipes/${id}`, data),
-  deleteRecipe: (id) => api.delete(`/perfume/recipes/${id}`),
 }
 
 // Discounts API

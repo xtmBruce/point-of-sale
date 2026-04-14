@@ -3,9 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
-import Navigation from './components/Navigation';
-import TopNavigation from './components/TopNavigation';
-import RoleBasedRoute from './components/RoleBasedRoute';
+import Navigation from './Components/Navigation';
+import TopNavigation from './Components/TopNavigation';
+import RoleBasedRoute from './Components/RoleBasedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
@@ -15,9 +15,6 @@ import CreateOrder from './pages/CreateOrder';
 import OrderEdit from './pages/OrderEdit';
 import SalesDashboard from './pages/SalesDashboard';
 import Shops from './pages/Shops';
-import Perfumes from './pages/Perfumes';
-
-import Production from './pages/Production';
 import Procurement from './pages/Procurement';
 import Notifications from './pages/Notifications';
 import Integrations from './pages/Integrations';
@@ -27,7 +24,6 @@ import Loyalty from './pages/Loyalty';
 import Layaway from './pages/Layaway';
 import Expenses from './pages/Expenses';
 import GLAccounts from './pages/GLAccounts';
-import Analytics from './pages/Analytics';
 import IncomeReport from './pages/IncomeReport';
 import Settings from './pages/Settings';
 import Categories from './pages/Categories';
@@ -199,17 +195,6 @@ const AppContent = () => {
         }
       />
 
-      <Route
-        path="/perfumes"
-        element={
-          <RoleBasedRoute allowedRoles={['admin', 'manager', 'inventory']}>
-            <Layout>
-              <Perfumes />
-            </Layout>
-          </RoleBasedRoute>
-        }
-      />
-
       {/* SMART BOTTLING ROUTE - COMMENTED OUT */}
       {/* Uncomment the route below to enable Smart Bottling system */}
       {/* 
@@ -226,33 +211,11 @@ const AppContent = () => {
       */}
 
       <Route
-        path="/production"
-        element={
-          <RoleBasedRoute allowedRoles={['admin', 'inventory']}>
-            <Layout>
-              <Production />
-            </Layout>
-          </RoleBasedRoute>
-        }
-      />
-
-      <Route
         path="/procurement"
         element={
           <RoleBasedRoute allowedRoles={['admin', 'inventory']}>
             <Layout>
               <Procurement />
-            </Layout>
-          </RoleBasedRoute>
-        }
-      />
-
-      <Route
-        path="/production/:tab"
-        element={
-          <RoleBasedRoute allowedRoles={['admin', 'inventory']}>
-            <Layout>
-              <Production />
             </Layout>
           </RoleBasedRoute>
         }
@@ -363,17 +326,6 @@ const AppContent = () => {
           <RoleBasedRoute allowedRoles={['admin', 'manager']}>
             <Layout>
               <GLAccounts />
-            </Layout>
-          </RoleBasedRoute>
-        }
-      />
-
-      <Route
-        path="/analytics"
-        element={
-          <RoleBasedRoute allowedRoles={['admin']}>
-            <Layout>
-              <Analytics />
             </Layout>
           </RoleBasedRoute>
         }

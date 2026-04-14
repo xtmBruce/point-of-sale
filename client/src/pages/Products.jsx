@@ -31,11 +31,11 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import CurrencyInput from '../components/CurrencyInput';
-import BarcodeGenerator from '../components/BarcodeGenerator';
-import BarcodeDisplay from '../components/BarcodeDisplay';
-import BarcodeScanner from '../components/BarcodeScanner';
-import ProductIntelligence from '../components/ProductIntelligence';
+import CurrencyInput from '../Components/CurrencyInput';
+import BarcodeGenerator from '../Components/BarcodeGenerator';
+import BarcodeDisplay from '../Components/BarcodeDisplay';
+import BarcodeScanner from '../Components/BarcodeScanner';
+import ProductIntelligence from '../Components/ProductIntelligence';
 import { productsAPI, categoriesAPI, brandsAPI, shopsAPI, inventoryAPI } from '../lib/api';
 
 const Products = () => {
@@ -145,12 +145,16 @@ const Products = () => {
   });
 
   const products = productsData?.products || [];
+  const safeProducts = Array.isArray(products) ? products : [];
   const pagination = productsData?.pagination || {};
   const totalProducts = pagination.total || 0;
   const totalPages = pagination.totalPages || Math.ceil(totalProducts / itemsPerPage);
   const categories = categoriesData?.flat || [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
   const brands = brandsData?.brands || [];
+  const safeBrands = Array.isArray(brands) ? brands : [];
   const shops = shopsData?.shops || [];
+  const safeShops = Array.isArray(shops) ? shops : [];
 
   // Mutations
   const createProductMutation = useMutation({
@@ -340,7 +344,7 @@ const Products = () => {
   };
 
   const selectAll = () => {
-    const allIds = products.map(product => product.id);
+    const allIds = safeProducts.map(product => product.id);
     setSelectedItems(new Set(allIds));
     setShowBulkActions(true);
   };
@@ -650,9 +654,9 @@ const Products = () => {
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="all">All Categories</option>
-                {categories.map(category => (
+                {safeCategories.map(category => (
                   <option key={category.id} value={category.id}>
-                    {'—'.repeat(category.level)} {category.name}
+                    {'—'.repeat(category.level || 0)} {category.name}
                   </option>
                 ))}
               </select>

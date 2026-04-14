@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import OrderList from '../components/OrderList';
-import OrderDetail from '../components/OrderDetail';
-import OrderEditModal from '../components/OrderEditModal';
+import OrderList from '../Components/OrderList';
+import OrderDetail from '../Components/OrderDetail';
+import OrderEditModal from '../Components/OrderEditModal';
 import { api } from '../lib/api';
 
 export default function Orders() {
