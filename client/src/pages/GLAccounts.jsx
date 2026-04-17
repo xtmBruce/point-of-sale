@@ -1,5 +1,5 @@
 import React from 'react';
-import GLAccountManagement from '../Components/GLAccountManagement';
+import GLAccountManagement from '../components/GLAccountManagement';
 
 const GLAccounts = () => {
   return (

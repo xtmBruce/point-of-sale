@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { notificationsAPI } from '../lib/api';
 import toast from 'react-hot-toast';
-import AddNotificationModal from '../Components/AddNotificationModal';
+import AddNotificationModal from '../components/AddNotificationModal';
 
 const Notifications = () => {
   const [activeTab, setActiveTab] = useState('overview');

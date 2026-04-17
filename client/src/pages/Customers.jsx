@@ -204,7 +204,6 @@ export default function Customers() {
   });
 
   const customers = customersData?.customers || [];
-  const safeCustomers = Array.isArray(customers) ? customers : [];
   const pagination = customersData?.pagination || {};
 
   // Calculate customer segments
@@ -333,8 +332,8 @@ export default function Customers() {
   const openEditModal = (customer) => {
     setSelectedCustomer(customer);
     setFormData({
-      firstName: customer.name?.split(' ')[0] || '',
-      lastName: customer.name?.split(' ').slice(1).join(' ') || '',
+      firstName: customer.first_name || '',
+      lastName: customer.last_name || '',
       email: customer.email || '',
       phone: customer.phone || '',
       address: customer.address || '',
@@ -371,18 +370,19 @@ export default function Customers() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const filteredCustomers = safeCustomers.filter(customer => {
+  const filteredCustomers = customers.filter(customer => {
     // Exclude walk-in customers and specific system customers
-    const isWalkInCustomer = customer.name?.toLowerCase() === 'walk-in' || 
-                            customer.name?.toLowerCase() === 'walk-in customer';
+    const isWalkInCustomer = customer.first_name?.toLowerCase() === 'walk-in' || 
+                            `${customer.first_name} ${customer.last_name}`.toLowerCase() === 'walk-in customer';
     
-    const isSystemCustomer = (customer.name === 'SDSerge Dukuziyaremye');
+    const isSystemCustomer = (customer.first_name === 'SDSerge' && customer.last_name === 'Dukuziyaremye');
     
     if (isWalkInCustomer || isSystemCustomer) return false;
     
     const searchLower = searchInput.toLowerCase();
     const matchesSearch = !searchInput || 
-                         customer.name?.toLowerCase().includes(searchLower) ||
+                         customer.first_name?.toLowerCase().includes(searchLower) ||
+                         customer.last_name?.toLowerCase().includes(searchLower) ||
                          customer.email?.toLowerCase().includes(searchLower) ||
                          customer.phone?.toLowerCase().includes(searchLower);
     const matchesTier = selectedTier === 'all' || customer.loyalty_tier === selectedTier;
@@ -392,11 +392,11 @@ export default function Customers() {
   });
 
   // Calculate segment distribution (excluding walk-in customers and system customers)
-  const segmentCounts = safeCustomers
+  const segmentCounts = customers
     .filter(customer => {
-      const isWalkInCustomer = customer.name?.toLowerCase() === 'walk-in' || 
-                              customer.name?.toLowerCase() === 'walk-in customer';
-      const isSystemCustomer = (customer.name === 'SDSerge Dukuziyaremye');
+      const isWalkInCustomer = customer.first_name?.toLowerCase() === 'walk-in' || 
+                              `${customer.first_name} ${customer.last_name}`.toLowerCase() === 'walk-in customer';
+      const isSystemCustomer = (customer.first_name === 'SDSerge' && customer.last_name === 'Dukuziyaremye');
       return !isWalkInCustomer && !isSystemCustomer;
     })
     .reduce((acc, customer) => {
@@ -406,10 +406,10 @@ export default function Customers() {
     }, {});
 
   // Calculate average health score (excluding walk-in customers and system customers)
-  const nonWalkInCustomers = safeCustomers.filter(customer => {
-    const isWalkInCustomer = customer.name?.toLowerCase() === 'walk-in' || 
-                            customer.name?.toLowerCase() === 'walk-in customer';
-    const isSystemCustomer = (customer.name === 'SDSerge Dukuziyaremye');
+  const nonWalkInCustomers = customers.filter(customer => {
+    const isWalkInCustomer = customer.first_name?.toLowerCase() === 'walk-in' || 
+                            `${customer.first_name} ${customer.last_name}`.toLowerCase() === 'walk-in customer';
+    const isSystemCustomer = (customer.first_name === 'SDSerge' && customer.last_name === 'Dukuziyaremye');
     return !isWalkInCustomer && !isSystemCustomer;
   });
   
@@ -706,11 +706,11 @@ export default function Customers() {
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
                           <div className="flex items-center">
                             <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
-                              {customer.name?.[0]}
+                              {customer.first_name?.[0]}{customer.last_name?.[0]}
                             </div>
                             <div className="ml-3">
                               <div className="text-sm font-medium text-gray-900">
-                                {customer.name}
+                                {customer.first_name} {customer.last_name}
                               </div>
                             </div>
                           </div>
@@ -847,11 +847,11 @@ export default function Customers() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center flex-1">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-sm">
-                          {customer.name?.[0]}
+                          {customer.first_name?.[0]}{customer.last_name?.[0]}
                         </div>
                         <div className="ml-3 flex-1">
                           <h3 className="text-base font-medium text-gray-900">
-                            {customer.name}
+                            {customer.first_name} {customer.last_name}
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${getSegmentColor(segment)}`}>
@@ -974,11 +974,11 @@ export default function Customers() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
                       <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium text-lg">
-                        {customer.name?.[0]}
+                        {customer.first_name?.[0]}{customer.last_name?.[0]}
                       </div>
                       <div className="ml-3">
                         <h3 className="text-lg font-medium text-gray-900">
-                          {customer.name}
+                          {customer.first_name} {customer.last_name}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${getSegmentColor(segment)}`}>

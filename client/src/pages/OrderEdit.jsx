@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import OrderEditModal from '../Components/OrderEditModal';
+import OrderEditModal from '../components/OrderEditModal';
 
 const OrderEdit = () => {
   const { orderId } = useParams();
