@@ -7,14 +7,12 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public Guid ProductId { get; set; }
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }
         [Column(TypeName = "decimal(10,2)")]
         public decimal? OldPrice { get; set; }
         [Column(TypeName = "decimal(10,2)")]
-        [Required]
         public decimal NewPrice { get; set; }
         public string? ChangeReason { get; set; }
         public string? PricingStrategy { get; set; }

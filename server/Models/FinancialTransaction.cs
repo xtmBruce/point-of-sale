@@ -7,14 +7,10 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
-        public DateTime TransactionDate { get; set; }
-        [Required]
+        public DateOnly TransactionDate { get; set; }
         public string Description { get; set; } = string.Empty;
         [Column(TypeName = "decimal(15,2)")]
-        [Required]
         public decimal Amount { get; set; }
-        [Required]
         public string TransactionType { get; set; } = string.Empty;
         public Guid? GLAccountId { get; set; }
         [ForeignKey("GLAccountId")]
@@ -23,7 +19,7 @@ namespace SmartPOS.API.Models
         public Guid? ReferenceId { get; set; }
         public Guid? CreatedBy { get; set; }
         [ForeignKey("CreatedBy")]
-        public User? CreatedByUser { get; set; }
+        public User? Creator { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

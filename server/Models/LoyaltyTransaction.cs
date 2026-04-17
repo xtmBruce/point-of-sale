@@ -7,13 +7,10 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public Guid CustomerId { get; set; }
         [ForeignKey("CustomerId")]
         public Customer? Customer { get; set; }
-        [Required]
-        public string TransactionType { get; set; } = string.Empty; // "earn", "redeem", "adjust"
-        [Required]
+        public string TransactionType { get; set; } = string.Empty;
         public int Points { get; set; }
         public string? Description { get; set; }
         public Guid? OrderId { get; set; }

@@ -13,14 +13,11 @@ namespace SmartPOS.API.Models
         public Guid? CustomerId { get; set; }
         [ForeignKey("CustomerId")]
         public Customer? Customer { get; set; }
-        [Required]
-        public string Type { get; set; } = string.Empty; // "sms", "email", "push"
+        public string Type { get; set; } = string.Empty;
         public string? Subject { get; set; }
-        [Required]
         public string Content { get; set; } = string.Empty;
-        [Required]
         public string Recipient { get; set; } = string.Empty;
-        public string Status { get; set; } = "pending"; // "pending", "sent", "delivered", "failed", "opened", "clicked"
+        public string Status { get; set; } = "pending";
         public DateTime? SentAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public DateTime? OpenedAt { get; set; }

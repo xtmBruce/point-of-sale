@@ -7,14 +7,13 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public Guid? BottleSizeId { get; set; }
         [ForeignKey("BottleSizeId")]
-        public BottleSizes? BottleSize { get; set; }
+        public BottleSize? BottleSize { get; set; }
         public string Version { get; set; } = "1.0";
-        public string Status { get; set; } = "active"; // "active", "inactive", "archived"
+        public string Status { get; set; } = "active";
         public string? Category { get; set; }
         public string? DifficultyLevel { get; set; }
         public int? EstimatedProductionTime { get; set; }
@@ -44,8 +43,5 @@ namespace SmartPOS.API.Models
         public decimal? EfficiencyRating { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<RecipeMaterial> RecipeMaterials { get; set; } = new List<RecipeMaterial>();
-        public ICollection<BottlingBatch> BottlingBatches { get; set; } = new List<BottlingBatch>();
     }
 }

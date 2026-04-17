@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartPOS.API.Models
 {
@@ -7,12 +6,11 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? DesignUrl { get; set; }
-        public string? BackgroundColor { get; set; } // Hex color code
-        public string? TextColor { get; set; } // Hex color code
+        public string? BackgroundColor { get; set; }
+        public string? TextColor { get; set; }
         public bool IsDefault { get; set; } = false;
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -7,12 +7,10 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public Guid SupplierId { get; set; }
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
-        [Required]
-        public DateTime PerformanceDate { get; set; }
+        public DateOnly PerformanceDate { get; set; }
         [Column(TypeName = "decimal(3,2)")]
         public decimal? DeliveryRating { get; set; }
         [Column(TypeName = "decimal(3,2)")]

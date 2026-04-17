@@ -7,11 +7,9 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public Guid WarehouseId { get; set; }
         [ForeignKey("WarehouseId")]
         public Warehouse? Warehouse { get; set; }
-        [Required]
         public Guid ProductId { get; set; }
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }

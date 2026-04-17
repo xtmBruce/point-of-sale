@@ -7,7 +7,6 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public Guid ProductId { get; set; }
         [ForeignKey("ProductId")]
         public Product? Product { get; set; }
@@ -17,7 +16,6 @@ namespace SmartPOS.API.Models
         public Guid? WarehouseId { get; set; }
         [ForeignKey("WarehouseId")]
         public Warehouse? Warehouse { get; set; }
-        [Required]
         public string TransactionType { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public int? PreviousStock { get; set; }
@@ -27,13 +25,13 @@ namespace SmartPOS.API.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal? TotalValue { get; set; }
         public string? BatchNumber { get; set; }
-        public DateTime? ExpiryDate { get; set; }
+        public DateOnly? ExpiryDate { get; set; }
         public Guid? ReferenceId { get; set; }
         public string? ReferenceType { get; set; }
         public string? Notes { get; set; }
         public Guid? CreatedBy { get; set; }
         [ForeignKey("CreatedBy")]
-        public User? CreatedByUser { get; set; }
+        public User? Creator { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

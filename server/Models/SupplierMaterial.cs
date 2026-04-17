@@ -7,18 +7,15 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public Guid SupplierId { get; set; }
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
-        [Required]
         public Guid MaterialId { get; set; }
         [ForeignKey("MaterialId")]
         public RawMaterial? Material { get; set; }
         public string? MaterialCode { get; set; }
         public string? SupplierPartNumber { get; set; }
         [Column(TypeName = "decimal(10,4)")]
-        [Required]
         public decimal StandardCost { get; set; }
         [Column(TypeName = "decimal(10,2)")]
         public decimal MinimumOrderQuantity { get; set; } = 1;

@@ -7,9 +7,7 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string Name { get; set; } = string.Empty;
-        [Required]
         public string Code { get; set; } = string.Empty;
         public string? Address { get; set; }
         public string? City { get; set; }
@@ -24,7 +22,5 @@ namespace SmartPOS.API.Models
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<WarehouseInventory> WarehouseInventories { get; set; } = new List<WarehouseInventory>();
     }
 }

@@ -7,11 +7,8 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string Name { get; set; } = string.Empty;
-        [Required]
         public string Type { get; set; } = string.Empty;
-        [Required]
         public string Unit { get; set; } = string.Empty;
         [Column(TypeName = "decimal(10,2)")]
         public decimal CurrentStock { get; set; } = 0;
@@ -24,11 +21,8 @@ namespace SmartPOS.API.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal SafetyStock { get; set; } = 0;
         [Column(TypeName = "decimal(10,2)")]
-        [Required]
         public decimal CostPerUnit { get; set; }
         public Guid? SupplierId { get; set; }
-        [ForeignKey("SupplierId")]
-        public Supplier? Supplier { get; set; }
         public string? SupplierName { get; set; }
         public string? SupplierContact { get; set; }
         public int LeadTimeDays { get; set; } = 0;
@@ -38,8 +32,5 @@ namespace SmartPOS.API.Models
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<RecipeMaterial> RecipeMaterials { get; set; } = new List<RecipeMaterial>();
-        public ICollection<SupplierMaterial> SupplierMaterials { get; set; } = new List<SupplierMaterial>();
     }
 }

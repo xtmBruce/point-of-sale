@@ -7,10 +7,8 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string Name { get; set; } = string.Empty;
-        [Required]
-        public string TriggerType { get; set; } = string.Empty; // "promotion", "loyalty", "payment_reminder", "order_update", "custom"
+        public string TriggerType { get; set; } = string.Empty;
         public string? Conditions { get; set; }
         public Guid? TemplateId { get; set; }
         [ForeignKey("TemplateId")]

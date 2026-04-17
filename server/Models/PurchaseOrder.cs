@@ -7,18 +7,14 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string PONumber { get; set; } = string.Empty;
-        [Required]
         public Guid SupplierId { get; set; }
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
-        [Required]
-        public DateTime OrderDate { get; set; }
-        public DateTime? ExpectedDeliveryDate { get; set; }
-        public string Status { get; set; } = "pending"; // "pending", "confirmed", "shipped", "received", "cancelled"
+        public DateOnly OrderDate { get; set; }
+        public DateOnly? ExpectedDeliveryDate { get; set; }
+        public string Status { get; set; } = "pending";
         [Column(TypeName = "decimal(15,2)")]
-        [Required]
         public decimal TotalAmount { get; set; }
         public string Currency { get; set; } = "RWF";
         public string? PaymentTerms { get; set; }
@@ -42,15 +38,12 @@ namespace SmartPOS.API.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal? TransportWarehouseCost { get; set; }
         [Column(TypeName = "decimal(15,2)")]
-        public decimal? TotalAmountRWF { get; set; }
+        public decimal? TotalAmountRFW { get; set; }
         public string? Notes { get; set; }
-        [Required]
         public Guid CreatedBy { get; set; }
         [ForeignKey("CreatedBy")]
         public User? CreatedByUser { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<PurchaseOrderItem> Items { get; set; } = new List<PurchaseOrderItem>();
     }
 }

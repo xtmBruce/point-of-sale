@@ -7,27 +7,21 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string GRNNumber { get; set; } = string.Empty;
         public Guid? PurchaseOrderId { get; set; }
         [ForeignKey("PurchaseOrderId")]
         public PurchaseOrder? PurchaseOrder { get; set; }
-        [Required]
         public Guid SupplierId { get; set; }
         [ForeignKey("SupplierId")]
         public Supplier? Supplier { get; set; }
-        [Required]
-        public DateTime ReceiptDate { get; set; }
-        [Required]
+        public DateOnly ReceiptDate { get; set; }
         public Guid ReceivedBy { get; set; }
         [ForeignKey("ReceivedBy")]
         public User? ReceivedByUser { get; set; }
-        public string Status { get; set; } = "received"; // "received", "inspected", "accepted", "rejected"
+        public string Status { get; set; } = "received";
         [Column(TypeName = "decimal(15,2)")]
         public decimal? TotalValue { get; set; }
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<GoodsReceiptItem> Items { get; set; } = new List<GoodsReceiptItem>();
     }
 }

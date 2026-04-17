@@ -13,7 +13,7 @@ namespace SmartPOS.API.Models
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         [Required]
-        public string AccountType { get; set; } = string.Empty; // "asset", "liability", "equity", "revenue", "expense"
+        public string AccountType { get; set; } = string.Empty;
         public Guid? ParentId { get; set; }
         [ForeignKey("ParentId")]
         public GLAccountCategory? Parent { get; set; }
@@ -22,7 +22,5 @@ namespace SmartPOS.API.Models
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<GLAccount> GLAccounts { get; set; } = new List<GLAccount>();
     }
 }

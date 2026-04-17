@@ -7,21 +7,18 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string BatchNumber { get; set; } = string.Empty;
-        [Required]
         public Guid RecipeId { get; set; }
         [ForeignKey("RecipeId")]
         public BottlingRecipe? Recipe { get; set; }
         public Guid? BulkPerfumeId { get; set; }
         [ForeignKey("BulkPerfumeId")]
         public PerfumeBulk? BulkPerfume { get; set; }
-        [Required]
         public int QuantityPlanned { get; set; }
         public int QuantityProduced { get; set; } = 0;
         public int QuantityDefective { get; set; } = 0;
-        public string Status { get; set; } = "planned"; // "planned", "in_production", "completed", "cancelled"
-        public DateTime? ProductionDate { get; set; }
+        public string Status { get; set; } = "planned";
+        public DateOnly? ProductionDate { get; set; }
         public DateTime? StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         [Column(TypeName = "decimal(10,2)")]
@@ -48,7 +45,5 @@ namespace SmartPOS.API.Models
         public User? CreatedByUser { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-        public ICollection<CostComponent> CostComponents { get; set; } = new List<CostComponent>();
     }
 }

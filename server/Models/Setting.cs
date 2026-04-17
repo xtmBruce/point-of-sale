@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartPOS.API.Models
 {
@@ -7,7 +6,6 @@ namespace SmartPOS.API.Models
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
-        [Required]
         public string Key { get; set; } = string.Empty;
         public string? Value { get; set; }
         public string? Description { get; set; }

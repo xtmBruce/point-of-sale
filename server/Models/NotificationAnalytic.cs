@@ -10,8 +10,7 @@ namespace SmartPOS.API.Models
         public Guid? CampaignId { get; set; }
         [ForeignKey("CampaignId")]
         public NotificationCampaign? Campaign { get; set; }
-        [Required]
-        public DateTime Date { get; set; }
+        public DateOnly? Date { get; set; }
         public int TotalSent { get; set; } = 0;
         public int TotalDelivered { get; set; } = 0;
         public int TotalOpened { get; set; } = 0;
