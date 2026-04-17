@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+<<<<<<< HEAD
 import PricingDashboard from '../Components/PricingDashboard';
 import PricingAnalysis from '../Components/PricingAnalysis';
 import PricingOptimization from '../Components/PricingOptimization';
+=======
+import PricingDashboard from '../components/PricingDashboard';
+import PricingAnalysis from '../components/PricingAnalysis';
+import PricingOptimization from '../components/PricingOptimization';
+>>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { productsAPI } from '../lib/api';

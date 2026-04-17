@@ -13,11 +13,27 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }) {
-  const mockUser = { id: 1, name: 'Admin', email: 'admin@pos.com', role: 'admin' }
-  const [user, setUser] = useState(mockUser)
-  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const checkAuth = async () => {}
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const userData = localStorage.getItem('user')
+      if (token && userData) {
+        setUser(JSON.parse(userData))
+      }
+    } catch (error) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const login = async (credentials) => {
     try {

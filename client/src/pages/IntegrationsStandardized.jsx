@@ -6,10 +6,17 @@ import {
   ExternalLink, Trash2, Edit, Eye, Play, TestTube
 } from 'lucide-react';
 import { api } from '../lib/api';
+<<<<<<< HEAD
 import PageLayout from '../Components/PageLayout';
 import StatsCard, { StatsGrid } from '../Components/StatsCard';
 import SearchFilter from '../Components/SearchFilter';
 import Modal from '../Components/Modal';
+=======
+import PageLayout from '../components/PageLayout';
+import StatsCard, { StatsGrid } from '../components/StatsCard';
+import SearchFilter from '../components/SearchFilter';
+import Modal from '../components/Modal';
+>>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 import { integrationsAPI } from '../lib/api';
 
 // Helper function for getting type icon

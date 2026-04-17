@@ -16,8 +16,13 @@ import toast from 'react-hot-toast';
 import { procurementAPI } from '../lib/api';
 import Swal from 'sweetalert2';
 
+<<<<<<< HEAD
 import PurchaseOrderForm from '../Components/procurement/PurchaseOrderForm';
 import PurchaseOrderDetails from '../Components/procurement/PurchaseOrderDetails';
+=======
+import PurchaseOrderForm from '../components/procurement/PurchaseOrderForm';
+import PurchaseOrderDetails from '../components/procurement/PurchaseOrderDetails';
+>>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 import { useMutation, useQueryClient } from '@tanstack/react-query'; // Import missing hooks
 
 const Procurement = () => {

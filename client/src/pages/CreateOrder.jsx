@@ -20,7 +20,11 @@ import {
   Tablet
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import OrderForm from '../Components/OrderForm';
+=======
+import OrderForm from '../components/OrderForm';
+>>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 import toast from 'react-hot-toast';
 
 const CreateOrder = () => {
