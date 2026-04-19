@@ -71,6 +71,7 @@ namespace SmartPOS.API.Data
         public DbSet<NotificationTrigger> NotificationTriggers { get; set; }
         public DbSet<CustomerNotificationPreference> CustomerNotificationPreferences { get; set; }
         public DbSet<NotificationAnalytic> NotificationAnalytics { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -92,6 +93,9 @@ namespace SmartPOS.API.Data
 
             modelBuilder.Entity<CustomerNotificationPreference>()
                 .HasIndex(x => x.CustomerId).IsUnique();
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(x => x.Token).IsUnique();
 
             // Fix cascade delete conflicts
             modelBuilder.Entity<GiftCardTransaction>()
