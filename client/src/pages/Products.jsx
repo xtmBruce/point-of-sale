@@ -31,19 +31,11 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-<<<<<<< HEAD
-import CurrencyInput from '../Components/CurrencyInput';
-import BarcodeGenerator from '../Components/BarcodeGenerator';
-import BarcodeDisplay from '../Components/BarcodeDisplay';
-import BarcodeScanner from '../Components/BarcodeScanner';
-import ProductIntelligence from '../Components/ProductIntelligence';
-=======
 import CurrencyInput from '../components/CurrencyInput';
 import BarcodeGenerator from '../components/BarcodeGenerator';
 import BarcodeDisplay from '../components/BarcodeDisplay';
 import BarcodeScanner from '../components/BarcodeScanner';
 import ProductIntelligence from '../components/ProductIntelligence';
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 import { productsAPI, categoriesAPI, brandsAPI, shopsAPI, inventoryAPI } from '../lib/api';
 
 const Products = () => {
@@ -153,24 +145,12 @@ const Products = () => {
   });
 
   const products = productsData?.products || [];
-<<<<<<< HEAD
-  const safeProducts = Array.isArray(products) ? products : [];
-=======
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
   const pagination = productsData?.pagination || {};
   const totalProducts = pagination.total || 0;
   const totalPages = pagination.totalPages || Math.ceil(totalProducts / itemsPerPage);
   const categories = categoriesData?.flat || [];
-<<<<<<< HEAD
-  const safeCategories = Array.isArray(categories) ? categories : [];
-  const brands = brandsData?.brands || [];
-  const safeBrands = Array.isArray(brands) ? brands : [];
-  const shops = shopsData?.shops || [];
-  const safeShops = Array.isArray(shops) ? shops : [];
-=======
   const brands = brandsData?.brands || [];
   const shops = shopsData?.shops || [];
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 
   // Mutations
   const createProductMutation = useMutation({
@@ -360,11 +340,7 @@ const Products = () => {
   };
 
   const selectAll = () => {
-<<<<<<< HEAD
-    const allIds = safeProducts.map(product => product.id);
-=======
     const allIds = products.map(product => product.id);
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
     setSelectedItems(new Set(allIds));
     setShowBulkActions(true);
   };
@@ -674,15 +650,9 @@ const Products = () => {
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="all">All Categories</option>
-<<<<<<< HEAD
-                {safeCategories.map(category => (
-                  <option key={category.id} value={category.id}>
-                    {'—'.repeat(category.level || 0)} {category.name}
-=======
                 {categories.map(category => (
                   <option key={category.id} value={category.id}>
                     {'—'.repeat(category.level)} {category.name}
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
                   </option>
                 ))}
               </select>

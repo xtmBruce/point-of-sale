@@ -41,17 +41,10 @@ import {
 } from 'lucide-react';
 import { dashboardAPI, shopsAPI } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
-<<<<<<< HEAD
-import LoadingSpinner from '../Components/LoadingSpinner';
-import SkeletonLoader from '../Components/SkeletonLoader';
-import ErrorBoundary from '../Components/ErrorBoundary';
-import OnboardingTour from '../Components/OnboardingTour';
-=======
 import LoadingSpinner from '../components/LoadingSpinner';
 import SkeletonLoader from '../components/SkeletonLoader';
 import ErrorBoundary from '../components/ErrorBoundary';
 import OnboardingTour from '../components/OnboardingTour';
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 
 const Dashboard = () => {
   // Date state initialization

@@ -23,19 +23,11 @@ import {
   Calculator
 } from 'lucide-react';
 import { api, expensesAPI, shopsAPI } from '../lib/api';
-<<<<<<< HEAD
-import ExpenseForm from '../Components/ExpenseForm';
-import ExpenseInsights from '../Components/ExpenseInsights';
-import FinancialReports from '../Components/FinancialReports';
-import ProfessionalFinancialReports from '../Components/ProfessionalFinancialReports';
-import AccountingDashboard from '../Components/AccountingDashboard';
-=======
 import ExpenseForm from '../components/ExpenseForm';
 import ExpenseInsights from '../components/ExpenseInsights';
 import FinancialReports from '../components/FinancialReports';
 import ProfessionalFinancialReports from '../components/ProfessionalFinancialReports';
 import AccountingDashboard from '../components/AccountingDashboard';
->>>>>>> d10bc65ca0e2784567c21698cb5ed72221dedbd3
 import { useCurrencyConversion } from '../hooks/useCurrencyConversion';
 import ExpenseAnalyticsService from '../services/expenseAnalyticsService';
 import { useAuth } from '../contexts/AuthContext';
