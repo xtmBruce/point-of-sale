@@ -93,6 +93,12 @@ namespace SmartPOS.API.Data
             modelBuilder.Entity<CustomerNotificationPreference>()
                 .HasIndex(x => x.CustomerId).IsUnique();
 
+            modelBuilder.Entity<GiftCardTransaction>()
+                .HasOne(g => g.Processor)
+                .WithMany()
+                .HasForeignKey(g => g.ProcessedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
             base.OnModelCreating(modelBuilder);
         }
     }
