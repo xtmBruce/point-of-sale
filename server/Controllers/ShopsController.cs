@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
+using SmartPOS.API.DTOs;
 using SmartPOS.API.Models;
 
 namespace SmartPOS.API.Controllers
@@ -27,26 +28,64 @@ namespace SmartPOS.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(Shop shop)
+        public async Task<IActionResult> Create([FromBody] CreateShopRequest req)
         {
-            shop.Id = Guid.NewGuid();
-            shop.CreatedAt = shop.UpdatedAt = DateTime.UtcNow;
+            // Validate request
+            if (!req.IsValid(out var errorMessage))
+                return BadRequest(new { error = errorMessage });
+
+            var shop = new Shop
+            {
+                Id = Guid.NewGuid(),
+                Name = req.Name.Trim(),
+                Address = req.Address?.Trim(),
+                City = req.City?.Trim(),
+                State = req.State?.Trim(),
+                Country = req.Country?.Trim(),
+                PostalCode = req.PostalCode?.Trim(),
+                Phone = req.Phone?.Trim(),
+                Email = req.Email?.Trim(),
+                ManagerId = req.ManagerId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
             _db.Shops.Add(shop);
             await _db.SaveChangesAsync();
             return CreatedAtAction(nameof(GetById), new { id = shop.Id }, shop);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, Shop updated)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateShopRequest req)
         {
             var shop = await _db.Shops.FindAsync(id);
             if (shop == null) return NotFound();
-            shop.Name = updated.Name;
-            shop.Address = updated.Address;
-            shop.City = updated.City;
-            shop.Phone = updated.Phone;
-            shop.Email = updated.Email;
-            shop.IsActive = updated.IsActive;
+
+            if (string.IsNullOrWhiteSpace(req.Name) && req.Name != null)
+                return BadRequest(new { error = "Shop name cannot be empty" });
+
+            if (req.Name != null)
+                shop.Name = req.Name.Trim();
+            if (req.Address != null)
+                shop.Address = req.Address.Trim();
+            if (req.City != null)
+                shop.City = req.City.Trim();
+            if (req.State != null)
+                shop.State = req.State.Trim();
+            if (req.Country != null)
+                shop.Country = req.Country.Trim();
+            if (req.PostalCode != null)
+                shop.PostalCode = req.PostalCode.Trim();
+            if (req.Phone != null)
+                shop.Phone = req.Phone.Trim();
+            if (req.Email != null)
+                shop.Email = req.Email.Trim();
+            if (req.ManagerId.HasValue)
+                shop.ManagerId = req.ManagerId;
+            if (req.IsActive.HasValue)
+                shop.IsActive = req.IsActive.Value;
+
             shop.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             return Ok(shop);

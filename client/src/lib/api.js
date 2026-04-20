@@ -46,6 +46,10 @@ export async function fetchData(url, requestFn, method = 'GET', payload = null) 
     const response = await requestFn()
     return response
   } catch (error) {
+    if (error.response) {
+      throw error
+    }
+
     if (!window.__mockLogged) {
       console.warn("Running in MOCK MODE. Backend is unavailable, falling back to mock API engine.");
       window.__mockLogged = true;
@@ -301,17 +305,6 @@ export const loyaltyAPI = {
   createTier: (data) => api.post('/loyalty/tiers', data),
   updateTier: (id, data) => api.put(`/loyalty/tiers/${id}`, data),
   deleteTier: (id) => api.delete(`/loyalty/tiers/${id}`),
-}
-
-// Settings API
-export const settingsAPI = {
-  getAppearance: () => api.get('/settings/appearance'),
-  updateAppearance: (data) => api.put('/settings/appearance', data),
-  uploadAsset: (formData) => api.post('/settings/upload-asset', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getGeneral: () => api.get('/settings/general'),
-  updateGeneral: (data) => api.put('/settings/general', data),
 }
 
 // Users API

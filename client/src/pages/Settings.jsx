@@ -45,7 +45,24 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import { shopsAPI, settingsAPI, usersAPI } from '../lib/api';
+import { shopsAPI, usersAPI } from '../lib/api';
+
+const APPEARANCE_STORAGE_KEY = 'appearance-settings';
+
+const defaultAppearanceSettings = {
+  theme: 'light',
+  primaryColor: '#3B82F6',
+  secondaryColor: '#6B7280',
+  accentColor: '#10B981',
+  fontFamily: 'Inter',
+  fontSize: 'medium',
+  borderRadius: 'medium',
+  logo: null,
+  companyName: 'Your Company',
+  companyDescription: 'Professional business solutions',
+  favicon: null,
+  customCSS: ''
+};
 
 
 const Settings = () => {
@@ -96,20 +113,7 @@ const Settings = () => {
   });
 
   // Appearance & Branding State
-  const [appearanceSettings, setAppearanceSettings] = useState({
-    theme: 'light',
-    primaryColor: '#3B82F6',
-    secondaryColor: '#6B7280',
-    accentColor: '#10B981',
-    fontFamily: 'Inter',
-    fontSize: 'medium',
-    borderRadius: 'medium',
-    logo: null,
-    companyName: 'Your Company',
-    companyDescription: 'Professional business solutions',
-    favicon: null,
-    customCSS: ''
-  });
+  const [appearanceSettings, setAppearanceSettings] = useState(defaultAppearanceSettings);
 
   // Appearance Settings Loading State
   const [isSavingAppearance, setIsSavingAppearance] = useState(false);
@@ -262,37 +266,6 @@ const Settings = () => {
 
   const queryClient = useQueryClient();
 
-  // Appearance Settings Query
-  const { data: appearanceData, isLoading: appearanceLoading } = useQuery({
-    queryKey: ['appearance-settings'],
-    queryFn: async () => {
-      const response = await settingsAPI.getAppearance();
-      return response.data;
-    },
-    onSuccess: (data) => {
-      if (data) {
-        setAppearanceSettings(data);
-      }
-    }
-  });
-
-  // Appearance Settings Mutation
-  const saveAppearanceMutation = useMutation({
-    mutationFn: async (settings) => {
-      const response = await settingsAPI.updateAppearance(settings);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['appearance-settings']);
-      toast.success('Appearance settings saved successfully!');
-      setIsSavingAppearance(false);
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.error || 'Failed to save appearance settings');
-      setIsSavingAppearance(false);
-    }
-  });
-
   // Set initial active tab from URL
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -304,15 +277,26 @@ const Settings = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Apply theme on component mount
+  // Load saved appearance settings on mount
   useEffect(() => {
-    if (appearanceData) {
-      applyThemeChanges(appearanceData);
-    } else {
-      // Apply default theme
-      applyThemeChanges(appearanceSettings);
+    const savedSettings = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        const mergedSettings = { ...defaultAppearanceSettings, ...parsedSettings };
+        setAppearanceSettings(mergedSettings);
+        applyThemeChanges(mergedSettings);
+        applyCustomCSS(mergedSettings.customCSS);
+        return;
+      } catch (error) {
+        console.warn('Failed to load saved appearance settings:', error);
     }
-  }, [appearanceData]);
+    }
+
+    applyThemeChanges(defaultAppearanceSettings);
+    applyCustomCSS(defaultAppearanceSettings.customCSS);
+  }, []);
 
   // Update URL when tab changes
   const handleTabChange = (tabId) => {
@@ -518,11 +502,16 @@ const Settings = () => {
       return;
     }
     
-    const userData = { ...userFormData };
-    // Normalize shop_id: for non-cashier roles, allow null if empty string
-    if (userData.role !== 'cashier' && !userData.shop_id) {
-      userData.shop_id = null;
-    }
+    const userData = {
+      username: userFormData.username.trim(),
+      email: userFormData.email.trim(),
+      first_name: userFormData.first_name.trim(),
+      last_name: userFormData.last_name.trim(),
+      phone: userFormData.phone.trim() || null,
+      role: userFormData.role,
+      shop_id: userFormData.shop_id || null,
+      password: userFormData.password,
+    };
     delete userData.confirm_password;
     
     // Debug: Log the data being sent
@@ -588,16 +577,19 @@ const Settings = () => {
 
     setIsSavingAppearance(true);
     try {
-      await saveAppearanceMutation.mutateAsync(appearanceSettings);
-      
+      localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(appearanceSettings));
       // Apply theme changes to the document
       applyThemeChanges(appearanceSettings);
       
       // Apply custom CSS
       applyCustomCSS(appearanceSettings.customCSS);
+      toast.success('Appearance settings saved successfully!');
       
     } catch (error) {
       console.error('Error saving appearance settings:', error);
+      toast.error('Failed to save appearance settings');
+    } finally {
+      setIsSavingAppearance(false);
     }
   };
 
@@ -655,20 +647,15 @@ const Settings = () => {
 
   const handleFileUpload = async (file, type) => {
     if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
-    
+
     try {
-      const response = await api.post('/settings/upload-asset', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      const fileUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`Failed to read ${type} file`));
+        reader.readAsDataURL(file);
       });
-      
-      const fileUrl = response.data.url;
-      
+
       if (type === 'logo') {
         setAppearanceSettings(prev => ({ ...prev, logo: fileUrl }));
       } else if (type === 'favicon') {
@@ -2143,10 +2130,10 @@ const Settings = () => {
           <div className="flex justify-end pt-6 border-t border-gray-200">
             <button 
               onClick={handleSaveAppearanceSettings}
-              disabled={isSavingAppearance || saveAppearanceMutation.isPending}
+              disabled={isSavingAppearance}
               className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSavingAppearance || saveAppearanceMutation.isPending ? (
+              {isSavingAppearance ? (
                 <div className="flex items-center space-x-2">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   <span>Saving...</span>

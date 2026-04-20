@@ -75,6 +75,9 @@ namespace SmartPOS.API.Controllers
             if (user == null)
                 return BadRequest(new { error = "Invalid credentials" });
 
+            if (!user.IsActive)
+                return BadRequest(new { error = "User account is inactive" });
+
             if (user.Password != HashPassword(req.Password))
                 return BadRequest(new { error = "Invalid credentials" });
 
@@ -98,6 +101,7 @@ namespace SmartPOS.API.Controllers
 
             var rt = await _db.RefreshTokens.Include(r => r.User).FirstOrDefaultAsync(r => r.Token == token);
             if (rt == null || !rt.IsActive) return Unauthorized(new { error = "Invalid or expired refresh token" });
+            if (rt.User == null || !rt.User.IsActive) return Unauthorized(new { error = "User account is inactive" });
 
             // rotate
             var newRt = CreateRefreshToken(Request.HttpContext.Connection.RemoteIpAddress?.ToString());
@@ -193,7 +197,8 @@ namespace SmartPOS.API.Controllers
             var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrWhiteSpace(sub)) return null;
             if (!Guid.TryParse(sub, out var userId)) return null;
-            return await _db.Users.FindAsync(userId);
+            var user = await _db.Users.FindAsync(userId);
+            return user != null && user.IsActive ? user : null;
         }
 
         private object SanitizeUser(User u)

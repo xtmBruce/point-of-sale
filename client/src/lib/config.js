@@ -16,7 +16,7 @@ const config = {
     // Use API subdomain for production
     baseURL: (import.meta.env.PROD || isRemoteServer)
       ? 'https://api.likaships.com/api'  // Production: use API subdomain
-      : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'),  // Development: use env var or localhost
+      : (import.meta.env.VITE_API_URL || 'https://localhost:7086/api'),  // Development: use env var or local API
     timeout: 30000, // 30 seconds
   },
 
