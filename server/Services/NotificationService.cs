@@ -23,6 +23,8 @@ namespace SmartPOS.API.Services
 
         public async Task<NotificationSendResult> SendDirectAsync(SendNotificationDto dto, CancellationToken cancellationToken = default)
         {
+            var channel = string.IsNullOrWhiteSpace(dto.Type) ? "email" : dto.Type.ToLowerInvariant();
+
             if (string.IsNullOrWhiteSpace(dto.Recipient))
             {
                 return new NotificationSendResult
@@ -42,6 +44,19 @@ namespace SmartPOS.API.Services
                         Success = false,
                         Error = "Customer not found"
                     };
+                }
+
+                if (channel == "email")
+                {
+                    var customer = await _db.Customers.FirstAsync(c => c.Id == dto.CustomerId.Value, cancellationToken);
+                    if (IsDefaultCustomer(customer))
+                    {
+                        return new NotificationSendResult
+                        {
+                            Success = false,
+                            Error = "Email notifications are not sent to the default walk-in customer"
+                        };
+                    }
                 }
             }
 
@@ -181,7 +196,11 @@ namespace SmartPOS.API.Services
                 TotalRecipients = notifications.Count,
                 SentCount = sentCount,
                 FailedCount = failedCount,
-                Error = sentCount > 0 ? null : "No recipients could be delivered"
+                Error = notifications.Count == 0
+                    ? "No eligible recipients found"
+                    : sentCount > 0
+                        ? null
+                        : "All recipient deliveries failed"
             };
         }
 
@@ -212,6 +231,11 @@ namespace SmartPOS.API.Services
             var customers = await _db.Customers
                 .Where(c => c.IsActive)
                 .ToListAsync(cancellationToken);
+
+            if (channel == "email")
+            {
+                customers = customers.Where(customer => !IsDefaultCustomer(customer)).ToList();
+            }
 
             if (customers.Count == 0)
             {
@@ -391,6 +415,14 @@ namespace SmartPOS.API.Services
                 .Replace("{{last_name}}", customer.LastName, StringComparison.OrdinalIgnoreCase);
         }
 
+        private static bool IsDefaultCustomer(Customer customer)
+        {
+            var firstName = customer.FirstName?.Trim().ToLowerInvariant();
+            var lastName = customer.LastName?.Trim().ToLowerInvariant();
+
+            return firstName == "walk-in" && lastName == "customer";
+        }
+
         private async Task DeliverNotificationAsync(Notification notification, CancellationToken cancellationToken)
         {
             if (notification.Type == "email")
@@ -398,7 +430,7 @@ namespace SmartPOS.API.Services
                 var success = await SendEmailAsync(notification.Recipient, notification.Subject ?? "Notification", notification.Content, cancellationToken);
                 notification.Status = success ? "sent" : "failed";
                 notification.SentAt = success ? DateTime.UtcNow : null;
-                notification.ErrorMessage = success ? null : "Failed to send email";
+                notification.ErrorMessage = success ? null : GetEmailFailureReason();
                 return;
             }
 
@@ -445,6 +477,22 @@ namespace SmartPOS.API.Services
                 _logger.LogError(ex, "Failed to send email notification to {Recipient}", to);
                 return false;
             }
+        }
+
+        private string GetEmailFailureReason()
+        {
+            var emailSection = _config.GetSection("Email");
+            var host = emailSection.GetValue<string>("Host");
+            var username = emailSection.GetValue<string>("Username");
+            var password = emailSection.GetValue<string>("Password");
+            var fromEmail = emailSection.GetValue<string>("FromEmail");
+
+            if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(fromEmail))
+            {
+                return "Email settings are incomplete";
+            }
+
+            return "Failed to send email";
         }
     }
 }
