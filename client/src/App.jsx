@@ -2,9 +2,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { SidebarProvider, useSidebar } from './contexts/SidebarContext';
-import Navigation from './components/Navigation';
+import { SidebarProvider } from './contexts/SidebarContext';
 import TopNavigation from './components/TopNavigation';
+import Navigation from './components/Navigation';
+import { useSidebar } from './contexts/SidebarContext';
 import RoleBasedRoute from './components/RoleBasedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -69,11 +70,10 @@ const ProtectedRoute = ({ children }) => {
 // Layout Component
 const Layout = ({ children }) => {
   const { isDesktopSidebarOpen } = useSidebar();
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navigation />
-      <div className={`transition-all duration-300 ease-in-out ${isDesktopSidebarOpen ? 'lg:pl-64' : 'lg:pl-0'}`}>
+      <div className={`transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-64' : ''}`}>
         <TopNavigation />
         <main className="flex-1 px-2 sm:px-4 lg:px-6 xl:px-8 pb-4 sm:pb-6">
           {children}

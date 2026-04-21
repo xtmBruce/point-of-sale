@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Menu, 
-  PanelLeftClose, 
-  PanelLeftOpen,
   Search,
   Bell,
   User,
@@ -18,7 +16,7 @@ const TopNavigation = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { isDesktopSidebarOpen, setIsDesktopSidebarOpen, isMobileMenuOpen, setIsMobileMenuOpen } = useSidebar();
+  const { setIsMobileMenuOpen } = useSidebar();
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -44,19 +42,6 @@ const TopNavigation = () => {
           aria-label="Open mobile menu"
         >
           <Menu className="h-5 w-5 text-gray-600" />
-        </button>
-
-        {/* Desktop sidebar toggle button */}
-        <button
-          onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
-          className="hidden lg:flex p-2 rounded-lg hover:bg-gray-100 transition-colors"
-          title={isDesktopSidebarOpen ? "Close sidebar" : "Open sidebar"}
-        >
-          {isDesktopSidebarOpen ? (
-            <PanelLeftClose className="h-5 w-5 text-gray-600" />
-          ) : (
-            <PanelLeftOpen className="h-5 w-5 text-gray-600" />
-          )}
         </button>
 
         {/* Search bar */}

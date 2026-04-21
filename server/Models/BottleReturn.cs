@@ -16,8 +16,6 @@ namespace SmartPOS.API.Models
         public Guid? ProcessedBy { get; set; }
         [ForeignKey("ProcessedBy")]
         public User? Processor { get; set; }
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal DiscountApplied { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

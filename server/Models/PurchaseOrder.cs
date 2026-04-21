@@ -40,7 +40,7 @@ namespace SmartPOS.API.Models
         [Column(TypeName = "decimal(15,2)")]
         public decimal? TotalAmountRFW { get; set; }
         public string? Notes { get; set; }
-        public Guid CreatedBy { get; set; }
+        public Guid? CreatedBy { get; set; }
         [ForeignKey("CreatedBy")]
         public User? CreatedByUser { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -214,14 +214,27 @@ const OrderList = ({ onViewOrder, onEditOrder }) => {
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex-1">
-            <div className="relative">
+          <div className="flex flex-1 gap-3">
+            {/* Order / product search */}
+            <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search orders by number, customer, product name..."
+                placeholder="Search by order number or product..."
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Customer search */}
+            <div className="flex-1 relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by customer name, email or phone..."
+                value={filters.customer}
+                onChange={(e) => handleFilterChange('customer', e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
             </div>

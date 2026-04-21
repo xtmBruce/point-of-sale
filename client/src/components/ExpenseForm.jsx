@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Calendar, DollarSign, Tag, FileText, Building, RefreshCw, Building2 } from 'lucide-react';
+import { X, Upload, Calendar, Tag, FileText, Building, RefreshCw } from 'lucide-react';
 import { expensesAPI } from '../lib/api';
 import toast from 'react-hot-toast';
-import GLAccountSelector from './GLAccountSelector';
 import CurrencyInput from './CurrencyInput';
 
 const ExpenseForm = ({ isOpen, onClose, expense = null, onSuccess, shops = [] }) => {
@@ -17,8 +16,6 @@ const ExpenseForm = ({ isOpen, onClose, expense = null, onSuccess, shops = [] })
     is_recurring: false,
     recurring_frequency: 'monthly'
   });
-
-  const [glAccounts, setGlAccounts] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -52,14 +49,6 @@ const ExpenseForm = ({ isOpen, onClose, expense = null, onSuccess, shops = [] })
         recurring_frequency: expense.recurring_frequency || 'monthly'
       });
 
-      // Set GL accounts if they exist
-      if (expense.gl_accounts && Array.isArray(expense.gl_accounts)) {
-        setGlAccounts(expense.gl_accounts);
-      } else {
-        setGlAccounts([]);
-      }
-    } else {
-      setGlAccounts([]);
     }
     fetchCategories();
   }, [expense]);
@@ -132,8 +121,7 @@ const ExpenseForm = ({ isOpen, onClose, expense = null, onSuccess, shops = [] })
       const submitData = {
         ...formData,
         amount: parseFloat(formData.amount),
-        shop_id: formData.shop_id || null,
-        gl_accounts: glAccounts.length > 0 ? glAccounts : undefined
+        shop_id: formData.shop_id || null
       };
       
       if (expense) {
@@ -334,17 +322,6 @@ const ExpenseForm = ({ isOpen, onClose, expense = null, onSuccess, shops = [] })
                 <p className="text-red-500 text-sm mt-1">{errors.recurring_frequency}</p>
               )}
             </div>
-          </div>
-
-          {/* GL Account Allocation */}
-          <div>
-            <GLAccountSelector
-              selectedAccounts={glAccounts}
-              onAccountsChange={setGlAccounts}
-              totalAmount={parseFloat(formData.amount) || 0}
-              currency={formData.currency}
-              disabled={loading}
-            />
           </div>
 
           {/* Receipt URL */}

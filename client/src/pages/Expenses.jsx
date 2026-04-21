@@ -3,33 +3,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
   Search,
-  Filter,
   FileText,
   DollarSign,
   TrendingUp,
-  TrendingDown,
   Calendar,
   Edit,
   Trash2,
   Eye,
   BarChart3,
   Receipt,
-  AlertTriangle,
-  RefreshCw,
-  PieChart,
-  TrendingUp as TrendingUpIcon,
-  Lightbulb,
-  Building2,
-  Calculator
+  AlertTriangle
 } from 'lucide-react';
-import { api, expensesAPI, shopsAPI } from '../lib/api';
+import { expensesAPI, shopsAPI } from '../lib/api';
 import ExpenseForm from '../components/ExpenseForm';
-import ExpenseInsights from '../components/ExpenseInsights';
-import FinancialReports from '../components/FinancialReports';
-import ProfessionalFinancialReports from '../components/ProfessionalFinancialReports';
-import AccountingDashboard from '../components/AccountingDashboard';
-import { useCurrencyConversion } from '../hooks/useCurrencyConversion';
-import ExpenseAnalyticsService from '../services/expenseAnalyticsService';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -40,64 +26,22 @@ const Expenses = () => {
   const [editingExpense, setEditingExpense] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState(null);
-  const [showRwfConversions, setShowRwfConversions] = useState(true);
   const [activeTab, setActiveTab] = useState('expenses');
-  const [insights, setInsights] = useState(null);
-  const [insightsLoading, setInsightsLoading] = useState(false);
 
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { formatCurrency, getRwfDisplay, convertToRwf, isLoading: conversionLoading, lastUpdated } = useCurrencyConversion();
 
-  // Initialize analytics service
-  const analyticsService = new ExpenseAnalyticsService();
-
-  // Redirect cashiers to expenses tab if they try to access restricted tabs
-  useEffect(() => {
-    if (user?.role === 'cashier' && !['expenses'].includes(activeTab)) {
-      setActiveTab('expenses');
-    }
-  }, [user?.role, activeTab]);
+  const formatCurrency = (amount) => `RWF ${Math.round(amount || 0).toLocaleString()}`;
 
   const { data: expensesData, isLoading } = useQuery({
     queryKey: ['expenses'],
-    queryFn: () => api.get('/expenses').then(res => res.data.expenses),
+    queryFn: () => expensesAPI.getAll().then(res => res.data.expenses),
   });
 
   const { data: shopsData } = useQuery({
     queryKey: ['shops'],
     queryFn: () => shopsAPI.getAll().then(res => res.data),
   });
-
-  // Calculate insights when expenses data changes
-  useEffect(() => {
-    if (expensesData && expensesData.length > 0) {
-      setInsightsLoading(true);
-      const calculatedInsights = analyticsService.calculateInsights(expensesData, 'all');
-      setInsights(calculatedInsights);
-      setInsightsLoading(false);
-    }
-  }, [expensesData]);
-
-  // Handle period change for insights
-  const handleInsightsPeriodChange = (period) => {
-    if (expensesData && expensesData.length > 0) {
-      setInsightsLoading(true);
-      const calculatedInsights = analyticsService.calculateInsights(expensesData, period);
-      setInsights(calculatedInsights);
-      setInsightsLoading(false);
-    }
-  };
-
-  // Refresh insights
-  const handleRefreshInsights = () => {
-    if (expensesData && expensesData.length > 0) {
-      setInsightsLoading(true);
-      const calculatedInsights = analyticsService.calculateInsights(expensesData, 'all');
-      setInsights(calculatedInsights);
-      setInsightsLoading(false);
-    }
-  };
 
   const expenses = expensesData || [];
   const shops = shopsData?.shops || [];
@@ -186,122 +130,46 @@ const Expenses = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center">
-            <div className="p-3 bg-red-100 rounded-xl">
-              <FileText className="h-6 w-6 text-red-600" />
-            </div>
+            <div className="p-3 bg-red-100 rounded-xl"><FileText className="h-6 w-6 text-red-600" /></div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(
-                  (expenses?.reduce((sum, e) => {
-                    const rwfAmount = convertToRwf(e.amount, e.currency || 'RWF') || 0;
-                    return sum + rwfAmount;
-                  }, 0) || 0),
-                  'RWF'
-                )}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(expenses.reduce((s, e) => s + (e.amount || 0), 0))}</p>
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center">
-            <div className="p-3 bg-orange-100 rounded-xl">
-              <Calendar className="h-6 w-6 text-orange-600" />
-            </div>
+            <div className="p-3 bg-orange-100 rounded-xl"><Calendar className="h-6 w-6 text-orange-600" /></div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">This Month</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(
-                  (expenses?.filter(e => {
-                    const expenseDate = new Date(e.expense_date);
-                    const now = new Date();
-                    return expenseDate.getMonth() === now.getMonth() &&
-                      expenseDate.getFullYear() === now.getFullYear();
-                  })?.reduce((sum, e) => {
-                    const rwfAmount = convertToRwf(e.amount, e.currency || 'RWF') || 0;
-                    return sum + rwfAmount;
-                  }, 0) || 0),
-                  'RWF'
-                )}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(expenses.filter(e => {
+                const d = new Date(e.expense_date), now = new Date();
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+              }).reduce((s, e) => s + (e.amount || 0), 0))}</p>
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <TrendingUp className="h-6 w-6 text-purple-600" />
-            </div>
+            <div className="p-3 bg-purple-100 rounded-xl"><TrendingUp className="h-6 w-6 text-purple-600" /></div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Recurring</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(
-                  (expenses?.filter(e => e.is_recurring)?.reduce((sum, e) => {
-                    const rwfAmount = convertToRwf(e.amount, e.currency || 'RWF') || 0;
-                    return sum + rwfAmount;
-                  }, 0) || 0),
-                  'RWF'
-                )}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(expenses.filter(e => e.is_recurring).reduce((s, e) => s + (e.amount || 0), 0))}</p>
             </div>
           </div>
         </div>
-
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <AlertTriangle className="h-6 w-6 text-blue-600" />
-            </div>
+            <div className="p-3 bg-blue-100 rounded-xl"><AlertTriangle className="h-6 w-6 text-blue-600" /></div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Categories</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {new Set(expenses.map(e => e.category)).size}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{new Set(expenses.map(e => e.category)).size}</p>
             </div>
           </div>
         </div>
       </div>
 
 
-
-      {/* Currency Conversion Status */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <DollarSign className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-blue-900">Currency Conversion</h3>
-              <p className="text-xs text-blue-700">
-                {showRwfConversions ? 'Showing RWF (Rwandan Franc) equivalents' : 'RWF conversions hidden'}
-                {lastUpdated && (
-                  <span className="ml-2">• Updated: {new Date(lastUpdated).toLocaleTimeString()}</span>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            {conversionLoading && (
-              <div className="flex items-center space-x-2 text-blue-600">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Updating rates...</span>
-              </div>
-            )}
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={showRwfConversions}
-                onChange={(e) => setShowRwfConversions(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <span className="text-sm text-blue-700">Show RWF</span>
-            </label>
-          </div>
-        </div>
-      </div>
 
       {/* Expenses Grid */}
       <>
@@ -379,14 +247,7 @@ const Expenses = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Amount:</span>
-                    <div className="text-right">
-                      <div className="font-semibold text-red-600">
-                        {formatCurrency(
-                          convertToRwf(expense.amount, expense.currency || 'RWF') || expense.amount,
-                          'RWF'
-                        )}
-                      </div>
-                    </div>
+                    <div className="font-semibold text-red-600">{formatCurrency(expense.amount)}</div>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-600">Date:</span>

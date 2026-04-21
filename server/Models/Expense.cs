@@ -22,6 +22,8 @@ namespace SmartPOS.API.Models
         public Guid? CreatedBy { get; set; }
         [ForeignKey("CreatedBy")]
         public User? Creator { get; set; }
+        public bool IsRecurring { get; set; } = false;
+        public string? RecurringFrequency { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
