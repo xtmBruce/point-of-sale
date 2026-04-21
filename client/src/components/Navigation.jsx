@@ -126,12 +126,6 @@ const Navigation = () => {
           description: 'Overview and analytics'
         },
         {
-          name: 'Sales Dashboard',
-          href: '/sales-dashboard',
-          icon: BarChart3,
-          description: 'Sales analytics and reports'
-        },
-        {
           name: 'Sales',
           icon: ShoppingCart,
           description: 'Create new sales orders',
@@ -254,16 +248,6 @@ const Navigation = () => {
           name: 'Loyalty',
           href: '/loyalty',
           description: 'Customer loyalty program'
-        },
-        {
-          name: 'Gift Cards',
-          href: '/gift-cards',
-          description: 'Gift card sales and management'
-        },
-        {
-          name: 'Layaway',
-          href: '/layaway',
-          description: 'Advance payment system'
         }
       ]
     },
@@ -273,11 +257,6 @@ const Navigation = () => {
       description: 'Complete order management system',
       hasSubmenu: true,
       submenu: [
-        {
-          name: 'Sales Dashboard',
-          href: '/sales-dashboard',
-          description: 'Sales analytics and invoice management'
-        },
         {
           name: 'Sales',
           href: '/orders/create',

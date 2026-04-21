@@ -48,7 +48,14 @@ namespace SmartPOS.API.Controllers
                 Customers = customers,
                 Total = total,
                 Page = page,
-                Limit = limit
+                Limit = limit,
+                Pagination = new PaginationDto
+                {
+                    Total = total,
+                    Page = page,
+                    Limit = limit,
+                    TotalPages = (int)Math.Ceiling((double)total / limit)
+                }
             });
         }
 
