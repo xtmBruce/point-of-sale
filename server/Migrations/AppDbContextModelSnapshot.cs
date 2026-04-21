@@ -37,9 +37,6 @@ namespace SmartPOS.API.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("DiscountApplied")
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<Guid?>("ProcessedBy")
                         .HasColumnType("uniqueidentifier");
 
@@ -502,38 +499,6 @@ namespace SmartPOS.API.Migrations
                     b.ToTable("Customers");
                 });
 
-            modelBuilder.Entity("SmartPOS.API.Models.CustomerDiscountUsage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("DiscountId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("LastUsedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UsageCount")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiscountId");
-
-                    b.HasIndex("CustomerId", "DiscountId")
-                        .IsUnique()
-                        .HasFilter("[CustomerId] IS NOT NULL AND [DiscountId] IS NOT NULL");
-
-                    b.ToTable("CustomerDiscountUsages");
-                });
-
             modelBuilder.Entity("SmartPOS.API.Models.CustomerNotificationPreference", b =>
                 {
                     b.Property<Guid>("Id")
@@ -582,119 +547,6 @@ namespace SmartPOS.API.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerNotificationPreferences");
-                });
-
-            modelBuilder.Entity("SmartPOS.API.Models.Discount", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("AllowPartialPayment")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ApplicableTo")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("AutoApply")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("BottleReturnCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CustomerTiers")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DiscountType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateOnly?>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("MaxDiscountAmount")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("MinPurchaseAmount")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateOnly?>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("UsageLimit")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("UsagePerCustomer")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Value")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedBy");
-
-                    b.ToTable("Discounts");
-                });
-
-            modelBuilder.Entity("SmartPOS.API.Models.DiscountApplication", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("AmountApplied")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<DateTime>("AppliedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("DiscountId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("FinalAmount")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<Guid?>("OrderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("OriginalAmount")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<decimal?>("PercentageApplied")
-                        .HasColumnType("decimal(5,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DiscountId");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("DiscountApplications");
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.ExchangeRate", b =>
@@ -758,10 +610,16 @@ namespace SmartPOS.API.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PaymentMethod")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ReceiptUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RecurringFrequency")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("ShopId")
@@ -1653,9 +1511,6 @@ namespace SmartPOS.API.Migrations
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<decimal>("LoyaltyDiscount")
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
@@ -1721,7 +1576,7 @@ namespace SmartPOS.API.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("DiscountPercent")
-                        .HasColumnType("decimal(5,2)");
+                        .HasColumnType("decimal(10,2)");
 
                     b.Property<Guid>("OrderId")
                         .HasColumnType("uniqueidentifier");
@@ -2330,6 +2185,47 @@ namespace SmartPOS.API.Migrations
                     b.HasIndex("RecipeId");
 
                     b.ToTable("RecipeMaterials");
+                });
+
+            modelBuilder.Entity("SmartPOS.API.Models.RefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Expires")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReplacedByToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("Revoked")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevokedByIp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Setting", b =>
@@ -2942,21 +2838,6 @@ namespace SmartPOS.API.Migrations
                     b.Navigation("Batch");
                 });
 
-            modelBuilder.Entity("SmartPOS.API.Models.CustomerDiscountUsage", b =>
-                {
-                    b.HasOne("SmartPOS.API.Models.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId");
-
-                    b.HasOne("SmartPOS.API.Models.Discount", "Discount")
-                        .WithMany()
-                        .HasForeignKey("DiscountId");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Discount");
-                });
-
             modelBuilder.Entity("SmartPOS.API.Models.CustomerNotificationPreference", b =>
                 {
                     b.HasOne("SmartPOS.API.Models.Customer", "Customer")
@@ -2966,30 +2847,6 @@ namespace SmartPOS.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("SmartPOS.API.Models.Discount", b =>
-                {
-                    b.HasOne("SmartPOS.API.Models.User", "Creator")
-                        .WithMany()
-                        .HasForeignKey("CreatedBy");
-
-                    b.Navigation("Creator");
-                });
-
-            modelBuilder.Entity("SmartPOS.API.Models.DiscountApplication", b =>
-                {
-                    b.HasOne("SmartPOS.API.Models.Discount", "Discount")
-                        .WithMany()
-                        .HasForeignKey("DiscountId");
-
-                    b.HasOne("SmartPOS.API.Models.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId");
-
-                    b.Navigation("Discount");
-
-                    b.Navigation("Order");
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Expense", b =>
@@ -3470,6 +3327,17 @@ namespace SmartPOS.API.Migrations
                     b.Navigation("Recipe");
                 });
 
+            modelBuilder.Entity("SmartPOS.API.Models.RefreshToken", b =>
+                {
+                    b.HasOne("SmartPOS.API.Models.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SmartPOS.API.Models.Shop", b =>
                 {
                     b.HasOne("SmartPOS.API.Models.User", "Manager")
@@ -3606,6 +3474,11 @@ namespace SmartPOS.API.Migrations
             modelBuilder.Entity("SmartPOS.API.Models.Order", b =>
                 {
                     b.Navigation("OrderItems");
+                });
+
+            modelBuilder.Entity("SmartPOS.API.Models.User", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

@@ -17,7 +17,7 @@ import {
   Gift
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { customersAPI } from '../lib/api';
+import { customersAPI, loyaltyAPI } from '../lib/api';
 
 const Loyalty = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,19 +25,24 @@ const Loyalty = () => {
 
   const { data: customersData, isLoading } = useQuery({
     queryKey: ['customers'],
-    queryFn: () => customersAPI.getAll().then(res => res.data.customers),
+    queryFn: () => customersAPI.getAll().then(res => res.data.customers || []),
+  });
+
+  const { data: loyaltyStats } = useQuery({
+    queryKey: ['loyalty-stats'],
+    queryFn: () => loyaltyAPI.getStats().then(res => res.data),
   });
 
   const customers = customersData || [];
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = selectedFilter === 'all' || 
-                         (selectedFilter === 'gold' && customer.loyalty_tier === 'gold') ||
-                         (selectedFilter === 'silver' && customer.loyalty_tier === 'silver') ||
-                         (selectedFilter === 'bronze' && customer.loyalty_tier === 'bronze');
+    const firstName = customer.first_name || '';
+    const lastName = customer.last_name || '';
+    const email = customer.email || '';
+    const matchesSearch = firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = selectedFilter === 'all' || customer.loyalty_tier === selectedFilter;
     return matchesSearch && matchesFilter;
   });
 
@@ -111,7 +116,7 @@ const Loyalty = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Members</p>
-                <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+            <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
               </div>
             </div>
           </div>
@@ -123,7 +128,7 @@ const Loyalty = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Gold Members</p>
-                <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-gray-900">
                   {customers.filter(c => c.loyalty_tier === 'gold').length}
                 </p>
               </div>
@@ -137,7 +142,7 @@ const Loyalty = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Silver Members</p>
-                <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-gray-900">
                   {customers.filter(c => c.loyalty_tier === 'silver').length}
                 </p>
               </div>
@@ -151,8 +156,9 @@ const Loyalty = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Points</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {customers.reduce((sum, c) => sum + (c.loyalty_points || 0), 0).toLocaleString()}
+            <p className="text-2xl font-bold text-gray-900">
+                  {loyaltyStats?.total_points_issued?.toLocaleString() ||
+                    customers.reduce((sum, c) => sum + (c.loyalty_points || 0), 0).toLocaleString()}
                 </p>
               </div>
             </div>

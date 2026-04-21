@@ -19,10 +19,10 @@ namespace SmartPOS.API.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal TotalPrice { get; set; }
         public string Currency { get; set; } = "RWF";
-        [Column(TypeName = "decimal(5,2)")]
-        public decimal DiscountPercent { get; set; } = 0;
         public string? ProductName { get; set; }
         public string? ProductType { get; set; }
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal DiscountPercent { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

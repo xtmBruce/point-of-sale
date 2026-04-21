@@ -158,10 +158,21 @@ const Shops = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
+    // Convert empty strings to null for optional fields
+    const cleanedData = {
+      ...formData,
+      manager_id: formData.manager_id ? formData.manager_id : null,
+      state: formData.state || null,
+      country: formData.country || null,
+      postal_code: formData.postal_code || null,
+      phone: formData.phone || null,
+      email: formData.email || null,
+    };
+
     if (showEditModal) {
-      updateShopMutation.mutate({ id: selectedShop.id, shopData: formData });
+      updateShopMutation.mutate({ id: selectedShop.id, shopData: cleanedData });
     } else {
-      createShopMutation.mutate(formData);
+      createShopMutation.mutate(cleanedData);
     }
   };
 

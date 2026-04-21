@@ -540,7 +540,7 @@ export default function Customers() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Total Points</p>
-                  <p className="text-2xl font-bold text-yellow-600">{loyaltyStats.total_points?.toLocaleString() || 0}</p>
+                  <p className="text-2xl font-bold text-yellow-600">{loyaltyStats.total_points_issued?.toLocaleString() || 0}</p>
                   <p className="text-xs text-gray-500 mt-1">Loyalty points issued</p>
                 </div>
                 <Award className="h-8 w-8 text-yellow-500" />
@@ -1764,7 +1764,7 @@ function LoyaltyModal({ customer, onClose, onAddPoints }) {
     e.preventDefault();
     if (points && description) {
       onAddPoints({
-        customer_id: customer.id,
+        customerId: customer.id,
         points: parseInt(points),
         description
       });
@@ -1800,24 +1800,26 @@ function LoyaltyModal({ customer, onClose, onAddPoints }) {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">{loyaltyData.customer.loyalty_points}</div>
+                  <div className="text-2xl font-bold text-gray-900">{loyaltyData.loyalty_points ?? customer.loyalty_points}</div>
                   <div className="text-sm text-gray-600">Current Points</div>
                 </div>
                 <div className="text-center">
-                  <span className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full ${getTierColor(loyaltyData.customer.loyalty_tier)}`}>
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full ${getTierColor(loyaltyData.loyalty_tier ?? customer.loyalty_tier)}`}>
                     <Crown className="h-4 w-4" />
-                    {loyaltyData.customer.loyalty_tier?.charAt(0).toUpperCase() + loyaltyData.customer.loyalty_tier?.slice(1)}
+                    {(loyaltyData.loyalty_tier ?? customer.loyalty_tier)?.charAt(0).toUpperCase() + (loyaltyData.loyalty_tier ?? customer.loyalty_tier)?.slice(1)}
                   </span>
                   <div className="text-sm text-gray-600 mt-1">Current Tier</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">${(loyaltyData.customer.total_spent || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+                  <div className="text-2xl font-bold text-green-600">${((loyaltyData.total_spent ?? customer.total_spent) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
                   <div className="text-sm text-gray-600">Total Spent</div>
-                  <div className="text-xs text-blue-600 mt-1">
-                    Avg: ${loyaltyData.customer.purchase_count > 0 ? ((loyaltyData.customer.total_spent || 0) / loyaltyData.customer.purchase_count).toFixed(2) : '0.00'} per order
-                  </div>
                 </div>
               </div>
+              {loyaltyData.next_tier && (
+                <p className="text-center text-sm text-gray-500 mt-3">
+                  {loyaltyData.points_to_next_tier} points to <span className="font-medium capitalize">{loyaltyData.next_tier}</span>
+                </p>
+              )}
             </div>
 
             {/* Add Points Form */}
@@ -1863,21 +1865,21 @@ function LoyaltyModal({ customer, onClose, onAddPoints }) {
               <h3 className="font-medium text-gray-900 mb-3">Recent Transactions</h3>
               <div className="border rounded-lg overflow-hidden">
                 <div className="max-h-60 overflow-y-auto">
-                  {loyaltyData.transactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {transaction.description}
+                  {(loyaltyData.transactions || []).length === 0 ? (
+                    <p className="p-4 text-sm text-gray-500 text-center">No transactions yet</p>
+                  ) : (
+                    (loyaltyData.transactions || []).map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{transaction.description}</div>
+                          <div className="text-xs text-gray-500">{new Date(transaction.created_at).toLocaleDateString()}</div>
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {new Date(transaction.created_at).toLocaleDateString()}
+                        <div className={`text-sm font-medium ${transaction.transaction_type === 'earn' ? 'text-green-600' : 'text-red-600'}`}>
+                          {transaction.transaction_type === 'earn' ? '+' : ''}{transaction.points} pts
                         </div>
                       </div>
-                      <div className={`text-sm font-medium ${transaction.transaction_type === 'earned' ? 'text-green-600' : 'text-red-600'}`}>
-                        {transaction.transaction_type === 'earned' ? '+' : '-'}{Math.abs(transaction.points)} pts
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>

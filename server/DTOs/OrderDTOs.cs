@@ -12,8 +12,6 @@ namespace SmartPOS.API.DTOs
         public string Status { get; set; } = string.Empty;
         public decimal Subtotal { get; set; }
         public decimal TaxAmount { get; set; }
-        public decimal DiscountAmount { get; set; }
-        public decimal LoyaltyDiscount { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal AmountPaid { get; set; }
         public decimal RemainingAmount { get; set; }
@@ -38,7 +36,6 @@ namespace SmartPOS.API.DTOs
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
         public string Currency { get; set; } = string.Empty;
-        public decimal DiscountPercent { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

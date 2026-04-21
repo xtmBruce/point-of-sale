@@ -46,6 +46,10 @@ export async function fetchData(url, requestFn, method = 'GET', payload = null) 
     const response = await requestFn()
     return response
   } catch (error) {
+    if (error.response) {
+      throw error
+    }
+
     if (!window.__mockLogged) {
       console.warn("Running in MOCK MODE. Backend is unavailable, falling back to mock API engine.");
       window.__mockLogged = true;
@@ -148,6 +152,7 @@ export const customersAPI = {
   update: (id, data) => api.put(`/customers/${id}`, data),
   delete: (id) => api.delete(`/customers/${id}`),
   getOrders: (id, params) => api.get(`/customers/${id}/orders`, { params }),
+  getStats: () => api.get('/customers/stats'),
 }
 
 // Orders API
@@ -174,6 +179,8 @@ export const inventoryAPI = {
   getLevels: (params) => api.get('/inventory/levels', { params }),
   // Manual product stock adjustment (product-level)
   adjustProductStock: (productId, data) => api.post(`/inventory/products/${productId}/adjust-stock`, data),
+  // Assign product to a shop via shop_inventory upsert flow
+  assignProductToShop: (data) => api.post('/inventory/assign-product-to-shop', data),
   // Assign stock to a location (shop or warehouse)
   assign: (data) => api.post('/inventory/assign', data),
   // Transfer stock between locations
@@ -221,10 +228,6 @@ export const expensesAPI = {
   delete: (id) => api.delete(`/expenses/${id}`),
   getCategories: () => api.get('/expenses/categories/list'),
   getStats: (params) => api.get('/expenses/stats/overview', { params }),
-  getVsRevenue: (params) => api.get('/expenses/stats/vs-revenue', { params }),
-  bulkImport: (data) => api.post('/expenses/bulk-import', data),
-  getByGLAccount: (glAccountId, params) => api.get(`/expenses/by-gl-account/${glAccountId}`, { params }),
-  getGLSummary: (params) => api.get('/expenses/gl-summary', { params })
 }
 
 // GL Accounts API
@@ -298,20 +301,6 @@ export const loyaltyAPI = {
   addPoints: (data) => api.post('/loyalty/points/add', data),
   redeemPoints: (data) => api.post('/loyalty/points/redeem', data),
   getTiers: () => api.get('/loyalty/tiers'),
-  createTier: (data) => api.post('/loyalty/tiers', data),
-  updateTier: (id, data) => api.put(`/loyalty/tiers/${id}`, data),
-  deleteTier: (id) => api.delete(`/loyalty/tiers/${id}`),
-}
-
-// Settings API
-export const settingsAPI = {
-  getAppearance: () => api.get('/settings/appearance'),
-  updateAppearance: (data) => api.put('/settings/appearance', data),
-  uploadAsset: (formData) => api.post('/settings/upload-asset', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getGeneral: () => api.get('/settings/general'),
-  updateGeneral: (data) => api.put('/settings/general', data),
 }
 
 // Users API
@@ -396,13 +385,12 @@ export const smartBottlingAPI = {
 // Procurement API
 export const procurementAPI = {
   getSuppliers: () => api.get('/procurement/suppliers'),
-  getMaterials: () => api.get('/procurement/materials'),
-  getSupplierMaterials: () => api.get('/procurement/supplier-materials'),
-  getPurchaseOrders: () => api.get('/procurement/purchase-orders'),
-  getPurchaseOrderById: (id) => api.get(`/procurement/purchase-orders/${id}`),
   createSupplier: (data) => api.post('/procurement/suppliers', data),
   updateSupplier: (id, data) => api.put(`/procurement/suppliers/${id}`, data),
   deleteSupplier: (id) => api.delete(`/procurement/suppliers/${id}`),
+  getMaterials: () => api.get('/procurement/materials'),
+  getPurchaseOrders: (params) => api.get('/procurement/purchase-orders', { params }),
+  getPurchaseOrderById: (id) => api.get(`/procurement/purchase-orders/${id}`),
   createPurchaseOrder: (data) => api.post('/procurement/purchase-orders', data),
   updatePurchaseOrder: (id, data) => api.put(`/procurement/purchase-orders/${id}`, data),
   deletePurchaseOrder: (id) => api.delete(`/procurement/purchase-orders/${id}`),

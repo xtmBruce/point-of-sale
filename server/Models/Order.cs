@@ -21,16 +21,14 @@ namespace SmartPOS.API.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal TaxAmount { get; set; } = 0;
         [Column(TypeName = "decimal(10,2)")]
-        public decimal DiscountAmount { get; set; } = 0;
-        [Column(TypeName = "decimal(10,2)")]
-        public decimal LoyaltyDiscount { get; set; } = 0;
-        [Column(TypeName = "decimal(10,2)")]
         public decimal TotalAmount { get; set; }
         [Column(TypeName = "decimal(10,2)")]
         public decimal AmountPaid { get; set; } = 0;
         [Column(TypeName = "decimal(10,2)")]
         public decimal RemainingAmount { get; set; } = 0;
         public string Currency { get; set; } = "RWF";
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal DiscountAmount { get; set; } = 0;
         public string? PaymentMethod { get; set; }
         public string PaymentStatus { get; set; } = "pending";
         public string? Notes { get; set; }

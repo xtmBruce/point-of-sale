@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
+using SmartPOS.API.DTOs;
 using SmartPOS.API.Models;
 
 namespace SmartPOS.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/customers")]
     [ApiController]
     public class CustomerController : ControllerBase
     {
@@ -16,48 +17,112 @@ namespace SmartPOS.API.Controllers
             _context = context;
         }
 
-        // GET: api/Customer
+        // GET: api/customers
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+        public async Task<ActionResult<CustomerListResponseDto>> GetCustomers(
+            [FromQuery] string? search,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 100)
         {
-            return await _context.Customers.ToListAsync();
+            var query = _context.Customers.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(c =>
+                    c.FirstName.Contains(search) ||
+                    c.LastName.Contains(search) ||
+                    (c.Email != null && c.Email.Contains(search)) ||
+                    (c.Phone != null && c.Phone.Contains(search)));
+            }
+
+            var total = await query.CountAsync();
+            var customers = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(c => MapToDto(c))
+                .ToListAsync();
+
+            return Ok(new CustomerListResponseDto
+            {
+                Customers = customers,
+                Total = total,
+                Page = page,
+                Limit = limit
+            });
         }
 
-        // GET: api/Customer/5
+        // GET: api/customers/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Customer>> GetCustomer(Guid id)
+        public async Task<IActionResult> GetCustomer(Guid id)
         {
             var customer = await _context.Customers.FindAsync(id);
-
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            return customer;
+            if (customer == null) return NotFound(new { error = "Customer not found" });
+            return Ok(new { customer = MapToDto(customer) });
         }
 
-        // GET: api/Customer/search?query=john
-        [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Customer>>> SearchCustomers(string query)
+        // GET: api/customers/{id}/orders
+        [HttpGet("{id}/orders")]
+        public async Task<IActionResult> GetCustomerOrders(
+            Guid id,
+            [FromQuery] int page = 1,
+            [FromQuery] int limit = 20)
         {
-            if (string.IsNullOrEmpty(query))
-            {
-                return await _context.Customers.Take(10).ToListAsync();
-            }
+            if (!await _context.Customers.AnyAsync(c => c.Id == id))
+                return NotFound(new { error = "Customer not found" });
 
-            return await _context.Customers
-                .Where(c => c.FirstName.Contains(query) || 
-                           c.LastName.Contains(query) || 
-                           c.Email.Contains(query) || 
-                           c.Phone.Contains(query))
+            var orders = await _context.Orders
+                .Where(o => o.CustomerId == id)
+                .OrderByDescending(o => o.CreatedAt)
+                .Skip((page - 1) * limit)
+                .Take(limit)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.Status,
+                    o.PaymentMethod,
+                    o.PaymentStatus,
+                    o.TotalAmount,
+                    o.CreatedAt
+                })
                 .ToListAsync();
+
+            var total = await _context.Orders.CountAsync(o => o.CustomerId == id);
+            return Ok(new { orders, total });
         }
 
-        // POST: api/Customer
-        [HttpPost]
-        public async Task<ActionResult<Customer>> CreateCustomer(CreateCustomerRequest request)
+        // GET: api/customers/stats
+        [HttpGet("stats")]
+        public async Task<ActionResult<CustomerStatsDto>> GetStats()
         {
+            var total = await _context.Customers.CountAsync();
+            var active = await _context.Customers.CountAsync(c => c.IsActive);
+            var totalSpent = await _context.Customers.SumAsync(c => c.TotalSpent);
+
+            return Ok(new CustomerStatsDto
+            {
+                TotalCustomers = total,
+                ActiveCustomers = active,
+                TotalSpent = totalSpent,
+                AverageSpent = total > 0 ? totalSpent / total : 0
+            });
+        }
+
+        // POST: api/customers
+        [HttpPost]
+        public async Task<ActionResult<CustomerResponseDto>> CreateCustomer(
+            [FromBody] CreateCustomerRequest request)
+        {
+            if (!request.IsValid(out var validationError))
+                return BadRequest(new { error = validationError });
+
+            if (!string.IsNullOrEmpty(request.Email))
+            {
+                var exists = await _context.Customers.AnyAsync(c => c.Email == request.Email);
+                if (exists)
+                    return Conflict(new { error = $"Customer with email '{request.Email}' already exists" });
+            }
+
             var customer = new Customer
             {
                 FirstName = request.FirstName,
@@ -72,6 +137,7 @@ namespace SmartPOS.API.Controllers
                 Birthday = request.Birthday,
                 AnniversaryDate = request.AnniversaryDate,
                 LoyaltyTier = request.LoyaltyTier ?? "bronze",
+                LoyaltyPoints = 0,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -80,140 +146,69 @@ namespace SmartPOS.API.Controllers
             _context.Customers.Add(customer);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id }, customer);
+            return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id },
+                new { customer = MapToDto(customer) });
         }
 
-        // PUT: api/Customer/5
+        // PUT: api/customers/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCustomer(Guid id, UpdateCustomerRequest request)
+        public async Task<ActionResult<CustomerResponseDto>> UpdateCustomer(
+            Guid id,
+            [FromBody] UpdateCustomerRequest request)
         {
             var customer = await _context.Customers.FindAsync(id);
+            if (customer == null) return NotFound(new { error = "Customer not found" });
 
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            customer.FirstName = request.FirstName ?? customer.FirstName;
-            customer.LastName = request.LastName ?? customer.LastName;
-            customer.Email = request.Email ?? customer.Email;
-            customer.Phone = request.Phone ?? customer.Phone;
-            customer.Address = request.Address ?? customer.Address;
-            customer.City = request.City ?? customer.City;
-            customer.State = request.State ?? customer.State;
-            customer.Country = request.Country ?? customer.Country;
-            customer.PostalCode = request.PostalCode ?? customer.PostalCode;
-            customer.Birthday = request.Birthday ?? customer.Birthday;
-            customer.AnniversaryDate = request.AnniversaryDate ?? customer.AnniversaryDate;
-            customer.LoyaltyTier = request.LoyaltyTier ?? customer.LoyaltyTier;
+            if (request.FirstName != null) customer.FirstName = request.FirstName;
+            if (request.LastName != null) customer.LastName = request.LastName;
+            if (request.Email != null) customer.Email = request.Email;
+            if (request.Phone != null) customer.Phone = request.Phone;
+            if (request.Address != null) customer.Address = request.Address;
+            if (request.City != null) customer.City = request.City;
+            if (request.State != null) customer.State = request.State;
+            if (request.Country != null) customer.Country = request.Country;
+            if (request.PostalCode != null) customer.PostalCode = request.PostalCode;
+            if (request.Birthday.HasValue) customer.Birthday = request.Birthday;
+            if (request.AnniversaryDate.HasValue) customer.AnniversaryDate = request.AnniversaryDate;
+            if (request.LoyaltyTier != null) customer.LoyaltyTier = request.LoyaltyTier;
             customer.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-
-            return NoContent();
+            return Ok(new { customer = MapToDto(customer) });
         }
 
-        // PUT: api/Customer/5/loyalty
-        [HttpPut("{id}/loyalty")]
-        public async Task<IActionResult> UpdateLoyalty(Guid id, UpdateLoyaltyRequest request)
-        {
-            var customer = await _context.Customers.FindAsync(id);
-
-            if (customer == null)
-            {
-                return NotFound();
-            }
-
-            customer.LoyaltyPoints = request.LoyaltyPoints;
-            customer.LoyaltyTier = request.LoyaltyTier;
-            customer.TotalSpent = request.TotalSpent;
-            customer.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        // DELETE: api/Customer/5
+        // DELETE: api/customers/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(Guid id)
         {
             var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
-            {
-                return NotFound();
-            }
+            if (customer == null) return NotFound(new { error = "Customer not found" });
 
             _context.Customers.Remove(customer);
             await _context.SaveChangesAsync();
-
-            return NoContent();
+            return Ok(new { message = "Customer deleted" });
         }
 
-        // GET: api/Customer/stats
-        [HttpGet("stats")]
-        public async Task<ActionResult<CustomerStats>> GetCustomerStats()
+        private static CustomerResponseDto MapToDto(Customer c) => new()
         {
-            var totalCustomers = await _context.Customers.CountAsync();
-            var activeCustomers = await _context.Customers.CountAsync(c => c.IsActive);
-            var totalSpent = await _context.Customers.SumAsync(c => c.TotalSpent);
-            var averageSpent = totalCustomers > 0 ? totalSpent / totalCustomers : 0;
-
-            return new CustomerStats
-            {
-                TotalCustomers = totalCustomers,
-                ActiveCustomers = activeCustomers,
-                TotalSpent = totalSpent,
-                AverageSpent = averageSpent
-            };
-        }
-    }
-
-    // DTOs
-    public class CreateCustomerRequest
-    {
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string? Email { get; set; }
-        public string? Phone { get; set; }
-        public string? Address { get; set; }
-        public string? City { get; set; }
-        public string? State { get; set; }
-        public string? Country { get; set; }
-        public string? PostalCode { get; set; }
-        public DateOnly? Birthday { get; set; }
-        public DateOnly? AnniversaryDate { get; set; }
-        public string? LoyaltyTier { get; set; }
-    }
-
-    public class UpdateCustomerRequest
-    {
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string? Email { get; set; }
-        public string? Phone { get; set; }
-        public string? Address { get; set; }
-        public string? City { get; set; }
-        public string? State { get; set; }
-        public string? Country { get; set; }
-        public string? PostalCode { get; set; }
-        public DateOnly? Birthday { get; set; }
-        public DateOnly? AnniversaryDate { get; set; }
-        public string? LoyaltyTier { get; set; }
-    }
-
-    public class UpdateLoyaltyRequest
-    {
-        public int LoyaltyPoints { get; set; }
-        public string LoyaltyTier { get; set; } = string.Empty;
-        public decimal TotalSpent { get; set; }
-    }
-
-    public class CustomerStats
-    {
-        public int TotalCustomers { get; set; }
-        public int ActiveCustomers { get; set; }
-        public decimal TotalSpent { get; set; }
-        public decimal AverageSpent { get; set; }
+            Id = c.Id,
+            FirstName = c.FirstName,
+            LastName = c.LastName,
+            Email = c.Email,
+            Phone = c.Phone,
+            Address = c.Address,
+            City = c.City,
+            State = c.State,
+            Country = c.Country,
+            PostalCode = c.PostalCode,
+            LoyaltyPoints = c.LoyaltyPoints,
+            LoyaltyTier = c.LoyaltyTier,
+            TotalSpent = c.TotalSpent,
+            Birthday = c.Birthday,
+            AnniversaryDate = c.AnniversaryDate,
+            IsActive = c.IsActive,
+            CreatedAt = c.CreatedAt,
+            UpdatedAt = c.UpdatedAt
+        };
     }
 }

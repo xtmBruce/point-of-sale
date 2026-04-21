@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
-import { ordersAPI, productsAPI, customersAPI, discountsAPI } from '../lib/api';
+import { ordersAPI, productsAPI, customersAPI } from '../lib/api';
 
 const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = false }) => {
   const [customers, setCustomers] = useState([]);
@@ -32,11 +32,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
   const [loading, setLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [errors, setErrors] = useState({});
-  const [availableDiscounts, setAvailableDiscounts] = useState([]);
-  const [selectedDiscounts, setSelectedDiscounts] = useState([]);
-  const [discountAmount, setDiscountAmount] = useState(0);
-  const [showDiscountModal, setShowDiscountModal] = useState(false);
-
   // Gift card state
   const [giftCardNumber, setGiftCardNumber] = useState('');
   const [giftCardBalance, setGiftCardBalance] = useState(0);
@@ -229,11 +224,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
     return () => window.removeEventListener('focus', handleWindowFocus);
   }, []);
 
-  // Fetch available discounts when component mounts
-  useEffect(() => {
-    fetchAvailableDiscounts();
-  }, []);
-
   // Reset gift card when payment method changes
   useEffect(() => {
     if (paymentMethod !== 'gift_card') {
@@ -271,50 +261,19 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
   const fetchCustomers = async () => {
     try {
       setCustomersLoading(true);
-      console.log('🔍 Fetching customers from database...');
-
       const response = await customersAPI.getAll();
-      console.log('📊 Customers API response:', response);
-
-      // Handle different response formats
       let customerData = [];
       if (response.data && response.data.customers) {
         customerData = response.data.customers;
       } else if (Array.isArray(response.data)) {
         customerData = response.data;
-      } else {
-        console.warn('⚠️ Unexpected customers response format:', response.data);
-        customerData = [];
       }
-
-      console.log(`✅ Loaded ${customerData.length} customers from database`);
       setCustomers(customerData);
-
-      // Log first few customers for debugging
-      if (customerData.length > 0) {
-        console.log('👥 Sample customers:', customerData.slice(0, 3));
-      }
-
     } catch (error) {
-      console.error('❌ Error fetching customers:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-
-      // More specific error messages
-      if (error.response?.status === 404) {
-        toast.error('Customers endpoint not found. Please check server configuration.');
-      } else if (error.response?.status === 500) {
-        toast.error('Server error while loading customers. Please try again.');
-      } else if (error.code === 'NETWORK_ERROR') {
-        toast.error('Network error. Please check your connection.');
-      } else {
-        toast.error(`Failed to load customers: ${error.message}`);
+      // Only show toast for non-404 errors (404 means endpoint not yet implemented)
+      if (error.response?.status !== 404) {
+        toast.error('Failed to load customers.');
       }
-
-      // Set empty array to prevent undefined errors
       setCustomers([]);
     } finally {
       setCustomersLoading(false);
@@ -369,34 +328,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
       setProducts([]);
     } finally {
       setProductsLoading(false);
-    }
-  };
-
-  const fetchAvailableDiscounts = async () => {
-    try {
-      // Fetch discounts based on payment status
-      const response = await discountsAPI.getAll({
-        params: {
-          is_active: true,
-          limit: 50,
-          payment_status: paymentStatus
-        }
-      });
-      setAvailableDiscounts(response.data.discounts || []);
-    } catch (error) {
-      console.error('Error fetching available discounts:', error);
-      // Gracefully handle discounts API failure - set empty array and continue
-      setAvailableDiscounts([]);
-      // Don't show error toast to user since discounts are optional for orders
-
-      // Log the specific error for debugging
-      if (error.response) {
-        console.error('Discounts API error details:', {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers
-        });
-      }
     }
   };
 
@@ -635,12 +566,7 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
               <span>Subtotal:</span>
               <span>${formatCurrency(calculateSubtotal()).replace('RWF', '').trim()} RWF</span>
             </div>
-            ${discountAmount > 0 ? `
-              <div class="total-row" style="color: #666;">
-                <span>Discount:</span>
-                <span>-${formatCurrency(discountAmount).replace('RWF', '').trim()} RWF</span>
-              </div>
-            ` : ''}
+  
             <div class="total-row">
               <span>Tax (18%):</span>
               <span>${formatCurrency(calculateTax()).replace('RWF', '').trim()} RWF</span>
@@ -964,306 +890,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
     return false;
   };
 
-  // Filter discounts to only show eligible ones (recalculates when orderItems or paymentStatus changes)
-  const eligibleDiscounts = useMemo(() => {
-    // Calculate subtotal directly instead of calling function
-    const subtotal = orderItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
-    const now = new Date();
-
-    return availableDiscounts.filter(discount => {
-      // Bottle return discounts are always available, regardless of customer
-      if (discount.type === 'bottle_return') {
-        // Check if discount is active
-        if (!discount.is_active) return false;
-
-        // Check date validity
-        const startDate = discount.start_date ? new Date(discount.start_date) : null;
-        const endDate = discount.end_date ? new Date(discount.end_date) : null;
-
-        if (startDate && now < startDate) return false;
-        if (endDate && now > endDate) return false;
-
-        // Check minimum purchase amount
-        if (discount.min_purchase_amount && subtotal < discount.min_purchase_amount) {
-          return false;
-        }
-
-        // Check payment status compatibility
-        if (paymentStatus === 'pending' && !discount.allow_partial_payment) {
-          return false;
-        }
-
-        return true;
-      }
-
-      // For other discounts, walk-in customers are not eligible
-      if (isWalkInCustomer(selectedCustomer)) {
-        return false;
-      }
-
-      // Check if discount is active
-      if (!discount.is_active) return false;
-
-      // Check date validity
-      const startDate = discount.start_date ? new Date(discount.start_date) : null;
-      const endDate = discount.end_date ? new Date(discount.end_date) : null;
-
-      if (startDate && now < startDate) return false;
-      if (endDate && now > endDate) return false;
-
-      // IMPORTANT: Check if discount applies to any products in the order
-      // Parse product_types if it's a string
-      let discountProductTypes = [];
-      if (discount.product_types) {
-        if (typeof discount.product_types === 'string') {
-          try {
-            discountProductTypes = JSON.parse(discount.product_types);
-          } catch (e) {
-            console.error('Error parsing discount product_types:', e);
-          }
-        } else if (Array.isArray(discount.product_types)) {
-          discountProductTypes = discount.product_types;
-        }
-      }
-
-      // If discount has product_types, check if any order item matches
-      if (discountProductTypes.length > 0) {
-        const hasMatchingProduct = orderItems.some(item => {
-          const itemProductType = item.product_type || 'general';
-          return discountProductTypes.includes(itemProductType);
-        });
-
-        // If no products in order match the discount's product types, discount is not eligible
-        if (!hasMatchingProduct) {
-          return false;
-        }
-      }
-
-      // Calculate subtotal of matching products for minimum purchase check
-      const matchingItemsSubtotal = orderItems
-        .filter(item => {
-          if (discountProductTypes.length === 0) return true; // If no product_types specified, include all
-          const itemProductType = item.product_type || 'general';
-          return discountProductTypes.includes(itemProductType);
-        })
-        .reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
-
-      // Check minimum purchase amount (only on matching products)
-      if (discount.min_purchase_amount && matchingItemsSubtotal < discount.min_purchase_amount) {
-        return false;
-      }
-
-      // Check payment status compatibility
-      if (paymentStatus === 'pending' && !discount.allow_partial_payment) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [availableDiscounts, orderItems, paymentStatus, selectedCustomer]);
-
-  const handleDiscountSelection = (discount) => {
-    const isSelected = selectedDiscounts.find(d => d.id === discount.id);
-
-    if (isSelected) {
-      setSelectedDiscounts(selectedDiscounts.filter(d => d.id !== discount.id));
-    } else {
-      // Prevent selecting multiple bottle return discounts
-      if (discount.type === 'bottle_return') {
-        const existingBottleReturn = selectedDiscounts.find(d => d.type === 'bottle_return');
-        if (existingBottleReturn) {
-          toast.error('Only one bottle return discount can be applied at a time. Please remove the existing bottle return discount first.');
-          return;
-        }
-      }
-      setSelectedDiscounts([...selectedDiscounts, discount]);
-    }
-  };
-
-  const calculateDiscountAmount = () => {
-    let totalDiscount = 0;
-    const subtotal = calculateSubtotal();
-
-    selectedDiscounts.forEach(discount => {
-      // Parse product_types if it's a string
-      let discountProductTypes = [];
-      if (discount.product_types) {
-        if (typeof discount.product_types === 'string') {
-          try {
-            discountProductTypes = JSON.parse(discount.product_types);
-          } catch (e) {
-            console.error('Error parsing discount product_types:', e);
-          }
-        } else if (Array.isArray(discount.product_types)) {
-          discountProductTypes = discount.product_types;
-        }
-      }
-
-      // Filter order items to only include those matching the discount's product types
-      const matchingItems = orderItems.filter(item => {
-        if (discountProductTypes.length === 0) return true; // If no product_types specified, include all
-        const itemProductType = item.product_type || 'general';
-        return discountProductTypes.includes(itemProductType);
-      });
-
-      // Calculate subtotal of matching items only
-      const matchingItemsSubtotal = matchingItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
-
-      // If no matching items, skip this discount
-      if (matchingItems.length === 0) {
-        return;
-      }
-
-      // Check minimum purchase amount requirement (only on matching products)
-      if (discount.min_purchase_amount && matchingItemsSubtotal < discount.min_purchase_amount) {
-        // Skip this discount if minimum purchase amount not met
-        return;
-      }
-
-      // Check if discount is currently active (date validation)
-      const now = new Date();
-      const startDate = discount.start_date ? new Date(discount.start_date) : null;
-      const endDate = discount.end_date ? new Date(discount.end_date) : null;
-
-      if (startDate && now < startDate) {
-        // Discount hasn't started yet
-        return;
-      }
-
-      if (endDate && now > endDate) {
-        // Discount has expired
-        return;
-      }
-
-      switch (discount.type) {
-        case 'percentage':
-          // Apply percentage discount only to matching items
-          totalDiscount += matchingItemsSubtotal * (discount.value / 100);
-          break;
-        case 'fixed_amount':
-          // Apply fixed amount discount, capped at matching items subtotal
-          totalDiscount += Math.min(discount.value, matchingItemsSubtotal);
-          break;
-        case 'bottle_return':
-          // Fixed amount bottle return calculation
-          if (discount.bottle_return_count) {
-            const bottleReturnTiers = [
-              { bottles: 1, discountAmount: 1000 },
-              { bottles: 2, discountAmount: 2000 },
-              { bottles: 3, discountAmount: 3000 },
-              { bottles: 4, discountAmount: 4000 }
-            ];
-            const tier = bottleReturnTiers.find(t => t.bottles === discount.bottle_return_count);
-            if (tier) {
-              // Apply fixed amount discount, capped at matching items subtotal
-              totalDiscount += Math.min(tier.discountAmount, matchingItemsSubtotal);
-            }
-          }
-          break;
-        default:
-          break;
-      }
-    });
-
-    setDiscountAmount(totalDiscount);
-    return totalDiscount;
-  };
-
-  // Clear discounts when walk-in customer is selected (except bottle return discounts)
-  useEffect(() => {
-    if (isWalkInCustomer(selectedCustomer) && selectedDiscounts.length > 0) {
-      // Keep bottle return discounts, remove others
-      const bottleReturnDiscounts = selectedDiscounts.filter(d => d.type === 'bottle_return');
-      const otherDiscounts = selectedDiscounts.filter(d => d.type !== 'bottle_return');
-
-      if (otherDiscounts.length > 0) {
-        setSelectedDiscounts(bottleReturnDiscounts);
-        // Recalculate discount amount for remaining bottle return discounts
-        if (bottleReturnDiscounts.length > 0) {
-          // Recalculate manually to avoid dependency issues
-          let totalDiscount = 0;
-          const subtotal = calculateSubtotal();
-          bottleReturnDiscounts.forEach(discount => {
-            if (discount.bottle_return_count) {
-              const bottleReturnTiers = [
-                { bottles: 1, discountAmount: 1000 },
-                { bottles: 2, discountAmount: 2000 },
-                { bottles: 3, discountAmount: 3000 },
-                { bottles: 4, discountAmount: 4000 }
-              ];
-              const tier = bottleReturnTiers.find(t => t.bottles === discount.bottle_return_count);
-              if (tier) {
-                totalDiscount += Math.min(tier.discountAmount, subtotal);
-              }
-            }
-          });
-          setDiscountAmount(totalDiscount);
-        } else {
-          setDiscountAmount(0);
-        }
-      }
-    }
-  }, [selectedCustomer, selectedDiscounts.length]);
-
-  // Auto-apply discounts when conditions are met
-  useEffect(() => {
-    // Don't auto-apply for walk-in customers
-    if (isWalkInCustomer(selectedCustomer)) {
-      return;
-    }
-
-    if (selectedCustomer && orderItems.length > 0 && eligibleDiscounts.length > 0) {
-      // Find discounts that should auto-apply (from eligible discounts only)
-      const autoApplyDiscounts = eligibleDiscounts.filter(discount => {
-        // Check if discount has auto_apply enabled
-        if (!discount.auto_apply) return false;
-
-        // Check if discount is already selected
-        if (selectedDiscounts.find(d => d.id === discount.id)) return false;
-
-        // All conditions already checked by isDiscountEligible - this discount should auto-apply
-        return true;
-      });
-
-      // Auto-apply eligible discounts
-      if (autoApplyDiscounts.length > 0) {
-        const newAutoApplied = autoApplyDiscounts.filter(
-          discount => {
-            // Don't auto-apply if already selected
-            if (selectedDiscounts.find(d => d.id === discount.id)) return false;
-
-            // Prevent auto-applying multiple bottle return discounts
-            if (discount.type === 'bottle_return') {
-              const existingBottleReturn = selectedDiscounts.find(d => d.type === 'bottle_return');
-              if (existingBottleReturn) return false;
-            }
-
-            return true;
-          }
-        );
-        if (newAutoApplied.length > 0) {
-          setSelectedDiscounts(prev => [...prev, ...newAutoApplied]);
-          toast.success(`${newAutoApplied.length} discount(s) automatically applied! 🎉`);
-        }
-      }
-    }
-  }, [eligibleDiscounts, selectedCustomer, orderItems, paymentStatus, selectedDiscounts]);
-
-  // Update discount amount when selected discounts change
-  useEffect(() => {
-    calculateDiscountAmount();
-  }, [selectedDiscounts, orderItems]);
-
-  // Refetch discounts when payment status changes
-  useEffect(() => {
-    fetchAvailableDiscounts();
-    // Clear selected discounts when switching to partial payment
-    if (paymentStatus === 'pending') {
-      setSelectedDiscounts([]);
-      setDiscountAmount(0);
-    }
-  }, [paymentStatus]);
-
   const addProductToOrder = (product, addedViaBarcode = false) => {
     const existingItem = orderItems.find(item => item.product_id === product.id);
 
@@ -1423,7 +1049,7 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() - discountAmount; // Tax not added to total
+    return calculateSubtotal(); // Tax not added to total
   };
 
   const calculateRemainingAmount = () => {
@@ -1573,16 +1199,12 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
         currency: 'RWF',
         subtotal: giftoPayment ? 0 : subtotal,
         tax_amount: giftoPayment ? 0 : tax,
-        discount_amount: giftoPayment ? 0 : discountAmount,
+        discount_amount: 0,
         total_amount: giftoPayment ? 0 : total,
         amount_paid: giftoPayment ? 0 : amountToPay,
         remaining_amount: giftoPayment ? 0 : remainingAmount,
         status: paymentStatus === 'pending' ? 'pending' : 'completed',
-        discounts: selectedDiscounts.map(discount => ({
-          discount_id: discount.id,
-          discount_type: discount.type,
-          discount_value: discount.value
-        }))
+        discounts: []
       };
 
       console.log('Saving order to database:', orderData);
@@ -1652,8 +1274,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
       setPaymentStatus('complete'); // Reset to default payment status
       setNotes('');
       setErrors({});
-      setSelectedDiscounts([]);
-      setDiscountAmount(0);
       setShowOrderSummary(false);
       resetGiftCard(); // Reset gift card fields
 
@@ -1688,7 +1308,62 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                 <span>Sales Records</span>
               </button>
 
-
+              {/* Customer Search */}
+              <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
+                <User className="h-4 w-4 sm:h-5 sm:w-5 inline mr-2" />Customer (Optional)
+              </label>
+              {selectedCustomer ? (
+                <div className="flex items-center justify-between p-3 bg-primary-50 border border-primary-200 rounded-xl mb-3">
+                  <div>
+                    <p className="font-semibold text-primary-900 text-sm">
+                      {selectedCustomer.first_name} {selectedCustomer.last_name}
+                    </p>
+                    {selectedCustomer.phone && (
+                      <p className="text-xs text-primary-600">{selectedCustomer.phone}</p>
+                    )}
+                    {selectedCustomer.email && (
+                      <p className="text-xs text-primary-500">{selectedCustomer.email}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => { setSelectedCustomer(null); setCustomerSearch(''); }}
+                    className="p-1 text-primary-400 hover:text-primary-700"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search customer by name, phone or email..."
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm sm:text-base"
+                  />
+                  {customerSearch && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto z-20">
+                      {filteredCustomers.length > 0 ? filteredCustomers.map(customer => (
+                        <button
+                          key={customer.id}
+                          onClick={() => { setSelectedCustomer(customer); setCustomerSearch(''); }}
+                          className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <p className="font-medium text-gray-900 text-sm">
+                            {customer.first_name} {customer.last_name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {customer.phone || customer.email || ''}
+                          </p>
+                        </button>
+                      )) : (
+                        <p className="p-3 text-sm text-gray-500 text-center">No customers found</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Product Search & Barcode */}
@@ -2238,12 +1913,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                     <span>Subtotal:</span>
                     <span>{formatCurrency(calculateSubtotal(), 'RWF')}</span>
                   </div>
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount:</span>
-                      <span>-{formatCurrency(discountAmount, 'RWF')}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between">
                     <span>Tax (18%):</span>
                     <span>{formatCurrency(calculateTax(), 'RWF')}</span>
@@ -2253,53 +1922,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                     <span>{formatCurrency(calculateTotal(), 'RWF')}</span>
                   </div>
                 </div>
-
-                {/* Discount Section - Show if customer selected OR if bottle return discounts available */}
-                {((selectedCustomer && eligibleDiscounts.length > 0) || eligibleDiscounts.some(d => d.type === 'bottle_return')) && (
-                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">Available Discounts</h4>
-                      <button
-                        onClick={() => setShowDiscountModal(true)}
-                        className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 font-medium"
-                      >
-                        View All ({eligibleDiscounts.length})
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {eligibleDiscounts.slice(0, 2).map((discount) => (
-                        <div
-                          key={discount.id}
-                          className={`flex items-center justify-between p-2 sm:p-3 rounded-lg border cursor-pointer transition-colors ${selectedDiscounts.find(d => d.id === discount.id)
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          onClick={() => handleDiscountSelection(discount)}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 mr-2 sm:mr-3 ${selectedDiscounts.find(d => d.id === discount.id)
-                              ? 'border-primary-500 bg-primary-500'
-                              : 'border-gray-300'
-                              }`}>
-                              {selectedDiscounts.find(d => d.id === discount.id) && (
-                                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full m-0.5"></div>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-medium text-xs sm:text-sm">{discount.name}</div>
-                              <div className="text-xs text-gray-500">{discount.description}</div>
-                            </div>
-                          </div>
-                          <div className="text-xs sm:text-sm font-medium text-primary-600">
-                            {discount.type === 'percentage' && `${discount.value}%`}
-                            {discount.type === 'fixed_amount' && formatCurrency(discount.value, 'RWF')}
-                            {discount.type === 'bottle_return' && `${discount.bottle_return_count} bottles`}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
             {/* Payment Method */}
@@ -2589,112 +2211,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
 
         </div>
 
-        {/* Discount Selection Modal */}
-        {showDiscountModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Select Discounts</h3>
-                  {paymentStatus === 'pending' && (
-                    <p className="text-sm text-orange-600 mt-1">
-                      ⚠️ Limited discounts available for partial payments
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowDiscountModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="p-6">
-                {eligibleDiscounts.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    {paymentStatus === 'pending' ? (
-                      <div>
-                        <p className="text-gray-500 mb-2">No discounts available for partial payments</p>
-                        <p className="text-sm text-orange-600">
-                          Complete the full payment to access all available discounts
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500">No discounts available for this customer</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {eligibleDiscounts.map((discount) => {
-                      const subtotal = calculateSubtotal();
-                      const isSelected = selectedDiscounts.find(d => d.id === discount.id);
-
-                      return (
-                        <div
-                          key={discount.id}
-                          className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-colors ${isSelected
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          onClick={() => handleDiscountSelection(discount)}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-5 h-5 rounded-full border-2 mr-4 ${isSelected
-                              ? 'border-primary-500 bg-primary-500'
-                              : 'border-gray-300'
-                              }`}>
-                              {isSelected && (
-                                <div className="w-2.5 h-2.5 bg-white rounded-full m-0.5"></div>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-medium">{discount.name}</div>
-                              <div className="text-sm text-gray-500">{discount.description}</div>
-                              <div className="text-xs mt-1">
-                                {discount.min_purchase_amount && (
-                                  <span className="text-green-600">
-                                    Min purchase: RWF {discount.min_purchase_amount.toLocaleString()}
-                                  </span>
-                                )}
-                                {discount.usage_limit && (
-                                  <span className="text-gray-400 ml-2">• Usage limit: {discount.usage_limit}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold text-primary-600">
-                              {discount.type === 'percentage' && `${discount.value}%`}
-                              {discount.type === 'fixed_amount' && `RWF ${discount.value.toLocaleString()}`}
-                              {discount.type === 'bottle_return' && `${discount.bottle_return_count} bottles`}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {discount.type === 'percentage' && `Save up to RWF ${(calculateSubtotal() * discount.value / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-                              {discount.type === 'fixed_amount' && `Save RWF ${Math.min(discount.value, calculateSubtotal()).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
-                              {discount.type === 'bottle_return' && 'Eco-friendly discount'}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 p-6 border-t">
-                <button
-                  onClick={() => setShowDiscountModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Order Summary Popup Modal */}
         {showOrderSummary && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -2785,12 +2301,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                         <span className="text-gray-600">Subtotal:</span>
                         <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
                       </div>
-                      {discountAmount > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Discounts:</span>
-                          <span className="font-medium text-green-600">-{formatCurrency(discountAmount)}</span>
-                        </div>
-                      )}
                       <div className="flex justify-between">
                         <span className="text-gray-600">Tax (18%):</span>
                         <span className="font-medium">{formatCurrency(calculateTax())}</span>
@@ -2853,12 +2363,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                       <span className="text-gray-600">Subtotal:</span>
                       <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
                     </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between text-base text-green-600">
-                        <span>Discount:</span>
-                        <span>-{formatCurrency(discountAmount)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between text-base">
                       <span className="text-gray-600">Tax (18%):</span>
                       <span className="font-medium">{formatCurrency(calculateTax())}</span>
@@ -2882,30 +2386,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                       )}
                     </div>
                   </div>
-
-                  {/* Discount Summary */}
-                  {selectedDiscounts.length > 0 && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <h5 className="font-medium text-gray-900 mb-3">Applied Discounts</h5>
-                      <div className="space-y-2">
-                        {selectedDiscounts.map((discount) => (
-                          <div key={discount.id} className="flex justify-between items-center p-2 bg-green-50 rounded-lg border border-green-200">
-                            <div>
-                              <p className="font-medium text-sm text-green-800">{discount.name}</p>
-                              <p className="text-xs text-green-600">{discount.description}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium text-green-800">
-                                {discount.type === 'percentage' && `${discount.value}%`}
-                                {discount.type === 'fixed_amount' && `$${discount.value}`}
-                                {discount.type === 'bottle_return' && `${discount.bottle_return_count} bottles`}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -3546,53 +3026,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                     <span>{formatCurrency(calculateTotal())}</span>
                   </div>
                 </div>
-
-                {/* Discount Section */}
-                {selectedCustomer && eligibleDiscounts.length > 0 && (
-                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">Available Discounts</h4>
-                      <button
-                        onClick={() => setShowDiscountModal(true)}
-                        className="text-xs sm:text-sm text-primary-600 hover:text-primary-700 font-medium"
-                      >
-                        View All ({eligibleDiscounts.length})
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {eligibleDiscounts.slice(0, 2).map((discount) => (
-                        <div
-                          key={discount.id}
-                          className={`flex items-center justify-between p-2 sm:p-3 rounded-lg border cursor-pointer transition-colors ${selectedDiscounts.find(d => d.id === discount.id)
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                            }`}
-                          onClick={() => handleDiscountSelection(discount)}
-                        >
-                          <div className="flex items-center">
-                            <div className={`w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 mr-2 sm:mr-3 ${selectedDiscounts.find(d => d.id === discount.id)
-                              ? 'border-primary-500 bg-primary-500'
-                              : 'border-gray-300'
-                              }`}>
-                              {selectedDiscounts.find(d => d.id === discount.id) && (
-                                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full m-0.5"></div>
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-medium text-xs sm:text-sm">{discount.name}</div>
-                              <div className="text-xs text-gray-500">{discount.description}</div>
-                            </div>
-                          </div>
-                          <div className="text-xs sm:text-sm font-medium text-primary-600">
-                            {discount.type === 'percentage' && `${discount.value}%`}
-                            {discount.type === 'fixed_amount' && `$${discount.value}`}
-                            {discount.type === 'bottle_return' && `${discount.bottle_return_count} bottles`}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -3874,12 +3307,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                       <span className="text-gray-600">Subtotal:</span>
                       <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
                     </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Discounts:</span>
-                        <span className="font-medium text-green-600">-{formatCurrency(discountAmount)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between">
                       <span className="text-gray-600">Tax (18%):</span>
                       <span className="font-medium">{formatCurrency(calculateTax())}</span>
@@ -3942,12 +3369,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                     <span className="text-gray-600">Subtotal:</span>
                     <span className="font-medium">{formatCurrency(calculateSubtotal())}</span>
                   </div>
-                  {discountAmount > 0 && (
-                    <div className="flex justify-between text-base text-green-600">
-                      <span>Discount:</span>
-                      <span>-{formatCurrency(discountAmount)}</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-base">
                     <span className="text-gray-600">Tax (18%):</span>
                     <span className="font-medium">{formatCurrency(calculateTax())}</span>
@@ -3971,30 +3392,6 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
                     )}
                   </div>
                 </div>
-
-                {/* Discount Summary */}
-                {selectedDiscounts.length > 0 && (
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <h5 className="font-medium text-gray-900 mb-3">Applied Discounts</h5>
-                    <div className="space-y-2">
-                      {selectedDiscounts.map((discount) => (
-                        <div key={discount.id} className="flex justify-between items-center p-2 bg-green-50 rounded-lg border border-green-200">
-                          <div>
-                            <p className="font-medium text-sm text-green-800">{discount.name}</p>
-                            <p className="text-xs text-green-600">{discount.description}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-green-800">
-                              {discount.type === 'percentage' && `${discount.value}%`}
-                              {discount.type === 'fixed_amount' && `$${discount.value}`}
-                              {discount.type === 'bottle_return' && `${discount.bottle_return_count} bottles`}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

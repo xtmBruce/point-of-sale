@@ -21,7 +21,6 @@ import {
   Receipt,
   Globe,
   Database,
-  Truck,
   ClipboardList,
   FileCheck,
   Eye,
@@ -40,7 +39,6 @@ const Navigation = () => {
   const [isProductManagerExpanded, setIsProductManagerExpanded] = useState(false);
   const [isCRMExpanded, setIsCRMExpanded] = useState(false);
   const [isOrdersManagerExpanded, setIsOrdersManagerExpanded] = useState(false);
-  const [isProductionExpanded, setIsProductionExpanded] = useState(false);
   const [isInventoryExpanded, setIsInventoryExpanded] = useState(false);
 
   // Accordion behavior: close all menus except the one being toggled
@@ -60,9 +58,6 @@ const Navigation = () => {
       case 'Orders Manager':
         isCurrentlyExpanded = isOrdersManagerExpanded;
         break;
-      case 'Production':
-        isCurrentlyExpanded = isProductionExpanded;
-        break;
       case 'Inventory':
         isCurrentlyExpanded = isInventoryExpanded;
         break;
@@ -75,7 +70,6 @@ const Navigation = () => {
     setIsProductManagerExpanded(false);
     setIsCRMExpanded(false);
     setIsOrdersManagerExpanded(false);
-    setIsProductionExpanded(false);
     setIsInventoryExpanded(false);
 
     // If the clicked menu wasn't already expanded, open it
@@ -92,9 +86,6 @@ const Navigation = () => {
           break;
         case 'Orders Manager':
           setIsOrdersManagerExpanded(true);
-          break;
-        case 'Production':
-          setIsProductionExpanded(true);
           break;
         case 'Inventory':
           setIsInventoryExpanded(true);
@@ -167,7 +158,7 @@ const Navigation = () => {
       ];
     }
 
-    // Manager role - access to stock management, production, and products
+    // Manager role - limited access
     if (user.role === 'manager') {
       return [
         {
@@ -206,19 +197,6 @@ const Navigation = () => {
             }
           ]
         },
-        {
-          name: 'Production',
-          icon: Truck,
-          description: 'Production management & perfume bottling',
-          hasSubmenu: true,
-          submenu: [
-            {
-              name: 'Perfumes',
-              href: '/perfumes',
-              description: 'Perfume bottling system'
-            }
-          ]
-        }
       ];
     }
 
@@ -309,11 +287,6 @@ const Navigation = () => {
           name: 'Sales Records',
           href: '/orders',
           description: 'View and manage existing orders'
-        },
-        {
-          name: 'Discounts',
-          href: '/discounts',
-          description: 'Discount management & campaigns'
         }
       ]
     },
@@ -342,57 +315,6 @@ const Navigation = () => {
       description: 'Manage suppliers and purchase orders'
     },
     {
-      name: 'Production',
-      icon: Truck,
-      description: 'Raw material acquisition & supplier management',
-      hasSubmenu: true,
-      submenu: [
-        {
-          name: 'Analytics',
-          href: '/production/analytics',
-          description: 'Production insights and reports'
-        },
-        {
-          name: 'Perfumes',
-          href: '/perfumes',
-          description: 'Perfume bottling system'
-        },
-        // PROCUREMENT NAVIGATION ITEMS - COMMENTED OUT
-        // Uncomment the blocks below to enable procurement features
-        /*
-        {
-          name: 'Suppliers',
-          href: '/production/suppliers',
-          description: 'Manage suppliers and performance'
-        },
-        {
-          name: 'Purchase Orders',
-          href: '/production/purchase-orders',
-          description: 'Create and track purchase orders'
-        },
-        {
-          name: 'Requisitions',
-          href: '/production/requisitions',
-          description: 'Purchase requisitions and approvals'
-        },
-        {
-          name: 'Goods Receipt',
-          href: '/production/goods-receipt',
-          description: 'Receive and inspect materials'
-        },
-        */
-        // SMART BOTTLING NAVIGATION - COMMENTED OUT
-        // Uncomment the block below to enable Smart Bottling navigation
-        /*
-        {
-          name: 'Smart Bottling',
-          href: '/smart-bottling',
-          description: 'Smart bottling & cost tracking'
-        },
-        */
-      ]
-    },
-    {
       name: 'Notifications',
       href: '/notifications',
       icon: Bell,
@@ -403,12 +325,6 @@ const Navigation = () => {
       href: '/expenses',
       icon: FileText,
       description: 'Expense tracking and management'
-    },
-    {
-      name: 'Analytics',
-      href: '/analytics',
-      icon: BarChart3,
-      description: 'Advanced reporting and insights'
     },
     {
       name: 'Income Report',
@@ -452,8 +368,7 @@ const Navigation = () => {
       setIsProductManagerExpanded(false);
       setIsCRMExpanded(false);
       setIsOrdersManagerExpanded(false);
-      setIsProductionExpanded(false);
-      setIsInventoryExpanded(false);
+        setIsInventoryExpanded(false);
 
       await logout();
       // Navigation will be handled by the ProtectedRoute component
@@ -506,13 +421,11 @@ const Navigation = () => {
                 const isExpanded = item.name === 'Product Manager' ? isProductManagerExpanded :
                   item.name === 'CRM' ? isCRMExpanded :
                     item.name === 'Orders Manager' ? isOrdersManagerExpanded :
-                      item.name === 'Production' ? isProductionExpanded :
-                        item.name === 'Inventory' ? isInventoryExpanded : false;
+                      item.name === 'Inventory' ? isInventoryExpanded : false;
                 const setExpanded = item.name === 'Product Manager' ? setIsProductManagerExpanded :
                   item.name === 'CRM' ? setIsCRMExpanded :
                     item.name === 'Orders Manager' ? setIsOrdersManagerExpanded :
-                      item.name === 'Production' ? setIsProductionExpanded :
-                        item.name === 'Inventory' ? setIsInventoryExpanded : () => { };
+                      item.name === 'Inventory' ? setIsInventoryExpanded : () => { };
 
                 return (
                   <div key={item.name}>
@@ -684,13 +597,11 @@ const Navigation = () => {
                 const isExpanded = item.name === 'Product Manager' ? isProductManagerExpanded :
                   item.name === 'CRM' ? isCRMExpanded :
                     item.name === 'Orders Manager' ? isOrdersManagerExpanded :
-                      item.name === 'Production' ? isProductionExpanded :
-                        item.name === 'Inventory' ? isInventoryExpanded : false;
+                      item.name === 'Inventory' ? isInventoryExpanded : false;
                 const setExpanded = item.name === 'Product Manager' ? setIsProductManagerExpanded :
                   item.name === 'CRM' ? setIsCRMExpanded :
                     item.name === 'Orders Manager' ? setIsOrdersManagerExpanded :
-                      item.name === 'Production' ? setIsProductionExpanded :
-                        item.name === 'Inventory' ? setIsInventoryExpanded : () => { };
+                      item.name === 'Inventory' ? setIsInventoryExpanded : () => { };
 
                 return (
                   <div key={item.name}>
@@ -878,3 +789,9 @@ const Navigation = () => {
 };
 
 export default Navigation; 
+
+
+
+
+
+

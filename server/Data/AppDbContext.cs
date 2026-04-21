@@ -13,11 +13,8 @@ namespace SmartPOS.API.Data
         public DbSet<Brand> Brands { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<Discount> Discounts { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
-        public DbSet<DiscountApplication> DiscountApplications { get; set; }
-        public DbSet<CustomerDiscountUsage> CustomerDiscountUsages { get; set; }
         public DbSet<GiftCard> GiftCards { get; set; }
         public DbSet<GiftCardTransaction> GiftCardTransactions { get; set; }
         public DbSet<GiftCardTemplate> GiftCardTemplates { get; set; }
@@ -71,13 +68,10 @@ namespace SmartPOS.API.Data
         public DbSet<NotificationTrigger> NotificationTriggers { get; set; }
         public DbSet<CustomerNotificationPreference> CustomerNotificationPreferences { get; set; }
         public DbSet<NotificationAnalytic> NotificationAnalytics { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Handle the composite unique key for CustomerDiscountUsage
-            modelBuilder.Entity<CustomerDiscountUsage>()
-                .HasIndex(c => new { c.CustomerId, c.DiscountId }).IsUnique();
-
             modelBuilder.Entity<ShopInventory>()
                 .HasIndex(x => new { x.ShopId, x.ProductId }).IsUnique();
 
@@ -92,6 +86,9 @@ namespace SmartPOS.API.Data
 
             modelBuilder.Entity<CustomerNotificationPreference>()
                 .HasIndex(x => x.CustomerId).IsUnique();
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(x => x.Token).IsUnique();
 
             // Fix cascade delete conflicts
             modelBuilder.Entity<GiftCardTransaction>()
