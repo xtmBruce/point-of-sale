@@ -12,7 +12,7 @@ import {
   FileText,
   Zap
 } from 'lucide-react';
-import { api } from '../lib/api';
+import { api, notificationsAPI } from '../lib/api';
 import toast from 'react-hot-toast';
 import { customersAPI } from '../lib/api';
 
@@ -105,7 +105,7 @@ const AddNotificationModal = ({ isOpen, onClose, mode = 'template' }) => {
 
   // Single notification mutation
   const sendNotificationMutation = useMutation({
-    mutationFn: (notificationData) => api.post('/notifications/send', notificationData),
+    mutationFn: (notificationData) => notificationsAPI.sendTest(notificationData),
     onSuccess: () => {
       toast.success('Notification sent successfully!');
       resetForms();
