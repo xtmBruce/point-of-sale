@@ -33,16 +33,28 @@ namespace SmartPOS.API.Controllers
             var lowStockProducts = await _db.Products.CountAsync(p => p.IsActive && p.StockQuantity <= p.MinStockLevel);
             var totalExpenses = await _db.Expenses.Where(e => e.ExpenseDate >= DateOnly.FromDateTime(start) && e.ExpenseDate <= DateOnly.FromDateTime(end)).SumAsync(e => (decimal?)e.Amount) ?? 0;
 
-            return Ok(new DashboardOverviewResponse
+            var paymentMethodStats = await ordersQuery
+                .Where(o => o.Status != "cancelled" && o.PaymentMethod != null)
+                .GroupBy(o => o.PaymentMethod)
+                .Select(g => new
+                {
+                    payment_method = g.Key,
+                    total_amount = g.Sum(o => o.TotalAmount),
+                    count = g.Count()
+                })
+                .ToListAsync();
+
+            return Ok(new
             {
-                TotalRevenue = totalRevenue,
-                TotalOrders = totalOrders,
-                TotalCustomers = totalCustomers,
-                TotalProducts = totalProducts,
-                LowStockProducts = lowStockProducts,
-                TotalExpenses = totalExpenses,
-                NetProfit = totalRevenue - totalExpenses,
-                PeriodDays = period
+                total_revenue = totalRevenue,
+                total_orders = totalOrders,
+                total_customers = totalCustomers,
+                total_products = totalProducts,
+                low_stock_products = lowStockProducts,
+                total_expenses = totalExpenses,
+                net_profit = totalRevenue - totalExpenses,
+                period_days = period,
+                payment_method_stats = paymentMethodStats
             });
         }
 
