@@ -147,7 +147,7 @@ namespace SmartPOS.API.Services
                     CustomerId = customer.Id,
                     Type = channel,
                     Subject = RenderTemplate(template.Subject, customer),
-                    Content = RenderTemplate(template.Content, customer),
+                    Content = RenderTemplate(template.Content, customer) ?? string.Empty,
                     Recipient = recipient,
                     Status = "pending",
                     CreatedAt = DateTime.UtcNow
@@ -223,6 +223,86 @@ namespace SmartPOS.API.Services
             }
 
             return processed;
+        }
+
+        public async Task<int> ProcessBirthdayWishesAsync(CancellationToken cancellationToken = default)
+        {
+            var now = DateTime.UtcNow;
+            var today = DateOnly.FromDateTime(now);
+            var dayStartUtc = now.Date;
+            var nextDayStartUtc = dayStartUtc.AddDays(1);
+            const string birthdaySubject = "Happy Birthday from aucaPOS";
+            const string birthdayBodyTemplate = "Happy Birthday {first_name}! We wish you a wonderful day from aucaPOS.";
+
+            var birthdayCustomers = await _db.Customers
+                .Where(c =>
+                    c.IsActive &&
+                    c.Birthday.HasValue &&
+                    c.Birthday.Value.Month == today.Month &&
+                    c.Birthday.Value.Day == today.Day)
+                .ToListAsync(cancellationToken);
+
+            var eligibleCustomers = birthdayCustomers
+                .Where(c => !IsDefaultCustomer(c))
+                .Where(c => !string.IsNullOrWhiteSpace(c.Email))
+                .ToList();
+
+            if (eligibleCustomers.Count == 0)
+            {
+                return 0;
+            }
+
+            var eligibleCustomerIds = eligibleCustomers.Select(c => c.Id).ToList();
+            var alreadySentIds = await _db.Notifications
+                .Where(n =>
+                    n.Type == "email" &&
+                    n.Subject == birthdaySubject &&
+                    n.CustomerId.HasValue &&
+                    eligibleCustomerIds.Contains(n.CustomerId.Value) &&
+                    n.CreatedAt >= dayStartUtc &&
+                    n.CreatedAt < nextDayStartUtc)
+                .Select(n => n.CustomerId!.Value)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var alreadySentSet = alreadySentIds.ToHashSet();
+            var notifications = new List<Notification>();
+
+            foreach (var customer in eligibleCustomers)
+            {
+                if (alreadySentSet.Contains(customer.Id))
+                {
+                    continue;
+                }
+
+                notifications.Add(new Notification
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = customer.Id,
+                    Type = "email",
+                    Subject = birthdaySubject,
+                    Content = RenderBirthdayMessage(birthdayBodyTemplate, customer),
+                    Recipient = customer.Email!,
+                    Status = "pending",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            if (notifications.Count == 0)
+            {
+                return 0;
+            }
+
+            _db.Notifications.AddRange(notifications);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            foreach (var notification in notifications)
+            {
+                await DeliverNotificationAsync(notification, cancellationToken);
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+            return notifications.Count(n => n.Status == "sent");
         }
 
         private async Task<List<Customer>> GetTargetCustomersAsync(NotificationCampaign campaign, CancellationToken cancellationToken)
@@ -407,6 +487,17 @@ namespace SmartPOS.API.Services
             }
 
             return text
+                .Replace("{customer_name}", $"{customer.FirstName} {customer.LastName}", StringComparison.OrdinalIgnoreCase)
+                .Replace("{{customer_name}}", $"{customer.FirstName} {customer.LastName}", StringComparison.OrdinalIgnoreCase)
+                .Replace("{first_name}", customer.FirstName, StringComparison.OrdinalIgnoreCase)
+                .Replace("{last_name}", customer.LastName, StringComparison.OrdinalIgnoreCase)
+                .Replace("{{first_name}}", customer.FirstName, StringComparison.OrdinalIgnoreCase)
+                .Replace("{{last_name}}", customer.LastName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string RenderBirthdayMessage(string template, Customer customer)
+        {
+            return template
                 .Replace("{customer_name}", $"{customer.FirstName} {customer.LastName}", StringComparison.OrdinalIgnoreCase)
                 .Replace("{{customer_name}}", $"{customer.FirstName} {customer.LastName}", StringComparison.OrdinalIgnoreCase)
                 .Replace("{first_name}", customer.FirstName, StringComparison.OrdinalIgnoreCase)

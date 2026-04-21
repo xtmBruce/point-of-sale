@@ -24,5 +24,6 @@ namespace SmartPOS.API.Services
         Task<NotificationSendResult> SendDirectAsync(SendNotificationDto dto, CancellationToken cancellationToken = default);
         Task<CampaignSendResult> SendCampaignAsync(Guid campaignId, CancellationToken cancellationToken = default);
         Task<int> ProcessScheduledCampaignsAsync(CancellationToken cancellationToken = default);
+        Task<int> ProcessBirthdayWishesAsync(CancellationToken cancellationToken = default);
     }
 }

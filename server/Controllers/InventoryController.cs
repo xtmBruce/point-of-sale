@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
 using SmartPOS.API.DTOs;
 using SmartPOS.API.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace SmartPOS.API.Controllers
 {
@@ -30,6 +32,16 @@ namespace SmartPOS.API.Controllers
         {
             page = page < 1 ? 1 : page;
             limit = limit < 1 ? 20 : Math.Min(limit, 200);
+
+            var (isCashier, cashierShopId) = await GetCurrentUserContextAsync();
+            if (isCashier)
+            {
+                if (!cashierShopId.HasValue || cashierShopId == Guid.Empty)
+                    return Ok(new { data = Array.Empty<object>(), pagination = new { total = 0, page, limit, totalPages = 0 } });
+
+                locationType = "shop";
+                locationId = cashierShopId.Value;
+            }
 
             if (!string.IsNullOrWhiteSpace(locationType) && !string.Equals(locationType, "shop", StringComparison.OrdinalIgnoreCase))
                 return BadRequest(new { error = "Only location_type=shop is currently supported" });
@@ -101,6 +113,25 @@ namespace SmartPOS.API.Controllers
                     totalPages = (int)Math.Ceiling(total / (double)limit)
                 }
             });
+        }
+
+        private async Task<(bool IsCashier, Guid? ShopId)> GetCurrentUserContextAsync()
+        {
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (!string.Equals(role, "cashier", StringComparison.OrdinalIgnoreCase))
+                return (false, null);
+
+            var subject = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(subject, out var userId))
+                return (true, null);
+
+            var user = await _db.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId && u.IsActive)
+                .Select(u => new { u.ShopId })
+                .FirstOrDefaultAsync();
+
+            return (true, user?.ShopId);
         }
 
         [HttpGet("stats")]
@@ -207,12 +238,12 @@ namespace SmartPOS.API.Controllers
             if (!shopExists)
                 return BadRequest(new { error = "Shop not found or inactive" });
 
-            var product = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.ProductId && p.IsActive);
+            var product = await _db.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == req.ProductId!.Value && p.IsActive);
             if (product == null)
                 return BadRequest(new { error = "Product not found or inactive" });
 
             var existingAssignment = await _db.ShopInventories
-                .FirstOrDefaultAsync(x => x.ShopId == effectiveShopId && x.ProductId == req.ProductId);
+                .FirstOrDefaultAsync(x => x.ShopId == effectiveShopId && x.ProductId == req.ProductId!.Value);
 
             if (existingAssignment == null)
             {
@@ -220,7 +251,7 @@ namespace SmartPOS.API.Controllers
                 {
                     Id = Guid.NewGuid(),
                     ShopId = effectiveShopId,
-                    ProductId = req.ProductId,
+                    ProductId = req.ProductId!.Value,
                     Quantity = req.Quantity,
                     MinStockLevel = req.MinStockLevel ?? product.MinStockLevel,
                     MaxStockLevel = req.MaxStockLevel ?? product.MaxStockLevel,

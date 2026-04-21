@@ -29,6 +29,8 @@ namespace SmartPOS.API.Models
         public string Currency { get; set; } = "RWF";
         [Column(TypeName = "decimal(10,2)")]
         public decimal DiscountAmount { get; set; } = 0;
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal LoyaltyDiscount { get; set; } = 0;
         public string? PaymentMethod { get; set; }
         public string PaymentStatus { get; set; } = "pending";
         public string? Notes { get; set; }

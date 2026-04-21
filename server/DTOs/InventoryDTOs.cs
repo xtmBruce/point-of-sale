@@ -2,20 +2,23 @@ namespace SmartPOS.API.DTOs
 {
     public class AssignProductToShopRequest
     {
-        public Guid ProductId { get; set; }
+        public Guid? ProductId { get; set; }
         public Guid? ShopId { get; set; }
+        public Guid? LocationId { get; set; } // frontend sends location_id
+        public string? LocationType { get; set; }
         public int Quantity { get; set; } = 0;
         public int? MinStockLevel { get; set; }
         public int? MaxStockLevel { get; set; }
         public int? ReorderPoint { get; set; }
         public int? SafetyStock { get; set; }
 
-        public Guid EffectiveShopId => ShopId ?? Guid.Empty;
+        public Guid EffectiveShopId => ShopId ?? LocationId ?? Guid.Empty;
 
         public bool IsValid(out string error)
         {
-            if (ProductId == Guid.Empty) { error = "ProductId is required"; return false; }
-            if (!ShopId.HasValue || ShopId == Guid.Empty) { error = "ShopId is required"; return false; }
+            if (!ProductId.HasValue || ProductId == Guid.Empty) { error = "ProductId is required"; return false; }
+            var shopId = ShopId ?? LocationId;
+            if (!shopId.HasValue || shopId == Guid.Empty) { error = "ShopId is required"; return false; }
             if (Quantity < 0) { error = "Quantity cannot be negative"; return false; }
             error = string.Empty;
             return true;
