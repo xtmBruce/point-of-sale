@@ -13,10 +13,10 @@ const isRemoteServer = typeof window !== 'undefined' &&
 const config = {
   // API Configuration
   api: {
-    // Use environment variable for production, fallback to localhost for development
+    // Force the correct backend URL for production to avoid stale Render environment variables
     baseURL: (import.meta.env.PROD || isRemoteServer)
-      ? (import.meta.env.VITE_API_URL || 'https://smartpos-retail.onrender.com/api')  // Production: use env var or default SmartPOS backend
-      : (import.meta.env.VITE_API_URL || 'https://localhost:7086/api'),  // Development: use env var or local API
+      ? 'https://smartpos-retail.onrender.com/api'
+      : (import.meta.env.VITE_API_URL || 'https://localhost:7086/api'),
     timeout: 30000, // 30 seconds
   },
 

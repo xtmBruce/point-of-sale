@@ -15,7 +15,11 @@ const createMockResponse = (url, method = 'GET', payload = null) => {
   let mockData;
   switch (method.toUpperCase()) {
     case 'POST':
-      mockData = mockApi.post(url, payload);
+      if (url.includes('auth/login')) {
+        mockData = { token: 'mock-token-123', user: { id: '1', role: 'admin', email: payload?.email || 'admin@example.com', first_name: 'Admin', last_name: 'User' } };
+      } else {
+        mockData = mockApi.post(url, payload);
+      }
       break;
     case 'PUT':
       mockData = mockApi.put(url, payload);
