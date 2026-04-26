@@ -26,10 +26,17 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy => policy
+<<<<<<< HEAD
+=======
+            .WithOrigins(
+                "https://point-of-sale-wapf.onrender.com",
+                "https://smartpos-retail.onrender.com",
+                "http://localhost:5173",
+                "http://localhost:3000"
+            )
+>>>>>>> bruce
             .AllowAnyMethod()
             .AllowAnyHeader()
-            // Allow credentials (cookies) and permit any origin by echoing it back.
-            .SetIsOriginAllowed(origin => true)
             .AllowCredentials());
 });
 
@@ -100,6 +107,24 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+<<<<<<< HEAD
+=======
+// Automatically apply pending migrations on startup
+try
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+        Console.WriteLine("✓ Database migrations applied successfully");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"✗ Error applying migrations: {ex.Message}");
+}
+
+>>>>>>> bruce
 // Seed database
 using (var scope = app.Services.CreateScope())
 {

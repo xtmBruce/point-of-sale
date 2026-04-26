@@ -1,86 +1,37 @@
 import React from 'react';
 
-/**
- * Standardized stats card component for displaying metrics
- * 
- * @param {Object} props - Component props
- * @param {string} props.title - Stat title/label
- * @param {string|number} props.value - Stat value
- * @param {React.Component} props.icon - Lucide icon component
- * @param {string} props.iconColor - Icon color class (e.g., 'text-primary-600')
- * @param {string} props.trend - Trend indicator (up, down, neutral)
- * @param {string|number} props.trendValue - Trend percentage or value
- * @param {string} props.subtitle - Optional subtitle
- * @param {Function} props.onClick - Optional click handler
- * @param {string} props.className - Additional CSS classes
- */
-const StatsCard = ({
-  title,
-  value,
-  icon: Icon,
-  iconColor = 'text-primary-600',
-  trend,
-  trendValue,
-  subtitle,
-  onClick,
-  className = ""
-}) => {
-  const getTrendIcon = () => {
-    switch (trend) {
-      case 'up':
-        return '↗️';
-      case 'down':
-        return '↘️';
-      default:
-        return null;
-    }
+const StatsCard = ({ title, value, icon: Icon, trend, color = 'blue' }) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 text-blue-600 border-blue-200',
+    green: 'bg-green-50 text-green-600 border-green-200',
+    red: 'bg-red-50 text-red-600 border-red-200',
+    yellow: 'bg-yellow-50 text-yellow-600 border-yellow-200',
+    purple: 'bg-purple-50 text-purple-600 border-purple-200'
   };
 
-  const getTrendColor = () => {
-    switch (trend) {
-      case 'up':
-        return 'text-green-600';
-      case 'down':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
+  const trendColor = trend?.positive ? 'text-green-600' : 'text-red-600';
 
   return (
-    <div
-      className={`stat-card ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow duration-200' : ''} ${className}`}
-      onClick={onClick}
-    >
-      <div className="flex items-center">
-        <div className="flex-shrink-0">
-          {Icon && <Icon className={`stat-icon ${iconColor}`} />}
-        </div>
-        <div className="ml-4 flex-1">
-          <p className="stat-label">{title}</p>
-          <div className="flex items-baseline">
-            <p className="stat-value">{value}</p>
-            {trend && trendValue && (
-              <span className={`ml-2 text-sm ${getTrendColor()}`}>
-                {getTrendIcon()} {trendValue}
-              </span>
-            )}
-          </div>
-          {subtitle && (
-            <p className="text-caption mt-1">{subtitle}</p>
+    <div className={`rounded-lg border p-6 ${colorClasses[color]}`}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-2">{value}</p>
+          {trend && (
+            <p className={`text-sm mt-2 ${trendColor}`}>
+              {trend.value} {trend.label}
+            </p>
           )}
         </div>
+        {Icon && <Icon className="w-8 h-8 opacity-50" />}
       </div>
     </div>
   );
 };
 
-/**
- * Container for multiple stats cards
- */
-export const StatsGrid = ({ children, className = "" }) => {
+export const StatsGrid = ({ children }) => {
   return (
-    <div className={`stats-grid ${className}`}>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {children}
     </div>
   );

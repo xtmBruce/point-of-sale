@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const RoleBasedRoute = ({ children, allowedRoles = [], fallbackPath = '/dashboard' }) => {
+const RoleBasedRoute = ({ children, allowedRoles, fallbackPath = '/login' }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -17,21 +17,15 @@ const RoleBasedRoute = ({ children, allowedRoles = [], fallbackPath = '/dashboar
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={fallbackPath} replace />;
   }
 
-  // If no specific roles are required, allow access
-  if (allowedRoles.length === 0) {
-    return children;
+  // Check if user role is in allowed roles
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={fallbackPath} replace />;
   }
 
-  // Check if user's role is in allowed roles
-  if (allowedRoles.includes(user.role)) {
-    return children;
-  }
-
-  // Redirect to fallback path if access denied
-  return <Navigate to={fallbackPath} replace />;
+  return children;
 };
 
 export default RoleBasedRoute;

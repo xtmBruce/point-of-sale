@@ -1,81 +1,74 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 
-const OnboardingTour = ({ 
-  isVisible, 
-  onComplete, 
-  userRole = 'cashier',
-  className = '' 
-}) => {
+const OnboardingTour = ({ isVisible, onComplete, userRole = 'admin' }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
 
-  const getTourSteps = () => {
-    if (userRole === 'cashier') {
-      return [
-        {
-          title: "Welcome to Your Sales Dashboard! 🎉",
-          content: "This is your personal sales workspace. Here you can track your performance and manage your daily tasks.",
-          highlight: "dashboard-header"
-        },
-        {
-          title: "Quick Actions",
-          content: "Use these buttons to quickly access the most common tasks: create sales, manage customers, view products, and track expenses.",
-          highlight: "quick-actions"
-        },
-        {
-          title: "Your Performance Metrics",
-          content: "These cards show your sales performance. Track your revenue, orders, and customer interactions.",
-          highlight: "metrics-cards"
-        },
-        {
-          title: "Navigation Menu",
-          content: "Use the sidebar to navigate between different sections. You have access to Sales, Customers, and Expenses.",
-          highlight: "navigation"
-        },
-        {
-          title: "You're All Set! 🚀",
-          content: "You now know the basics. Start by creating your first sale using the 'New Sale' button!",
-          highlight: null
-        }
-      ];
-    } else {
-      return [
-        {
-          title: "Welcome to Likaperfumes! 🎉",
-          content: "This comprehensive dashboard gives you complete control over your retail operations.",
-          highlight: "dashboard-header"
-        },
-        {
-          title: "Quick Actions",
-          content: "Access the most common tasks quickly: create sales, manage customers, view products, and track expenses.",
-          highlight: "quick-actions"
-        },
-        {
-          title: "Business Metrics",
-          content: "Monitor your business performance with real-time metrics and analytics across all your shops.",
-          highlight: "metrics-cards"
-        },
-        {
-          title: "Shop Selection",
-          content: "Use the shop selector to view data for specific locations or all shops combined.",
-          highlight: "shop-selector"
-        },
-        {
-          title: "Complete Navigation",
-          content: "Access all features through the sidebar: products, inventory, orders, customers, analytics, and more.",
-          highlight: "navigation"
-        },
-        {
-          title: "Ready to Go! 🚀",
-          content: "You have full access to all features. Start by exploring the different sections or creating your first order!",
-          highlight: null
-        }
-      ];
-    }
+  const tourSteps = {
+    admin: [
+      {
+        title: 'Welcome to SmartPOS',
+        description: 'This dashboard gives you a comprehensive view of your business performance.',
+        target: 'header'
+      },
+      {
+        title: 'Quick Stats',
+        description: 'View key metrics including total orders, revenue, and customer insights.',
+        target: 'stats'
+      },
+      {
+        title: 'Transactions',
+        description: 'Monitor all your transactions in real-time.',
+        target: 'transactions'
+      },
+      {
+        title: 'Ready to Go!',
+        description: 'You can now navigate through all features. Click "Complete" to finish the tour.',
+        target: 'footer'
+      }
+    ],
+    cashier: [
+      {
+        title: 'Welcome Cashier',
+        description: 'You can create orders and process transactions here.',
+        target: 'header'
+      },
+      {
+        title: 'Quick Stats',
+        description: 'Track your daily sales and order count.',
+        target: 'stats'
+      },
+      {
+        title: 'All Set!',
+        description: 'Start processing orders now.',
+        target: 'footer'
+      }
+    ],
+    manager: [
+      {
+        title: 'Welcome Manager',
+        description: 'Monitor your inventory and sales reports from this dashboard.',
+        target: 'header'
+      },
+      {
+        title: 'Business Metrics',
+        description: 'View detailed analytics about your operations.',
+        target: 'stats'
+      },
+      {
+        title: 'Ready!',
+        description: 'Start exploring the dashboard.',
+        target: 'footer'
+      }
+    ]
   };
 
-  const steps = getTourSteps();
+  const steps = tourSteps[userRole] || tourSteps.admin;
+  const currentTour = steps[currentStep];
+
+  if (!isVisible) {
+    return null;
+  }
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -92,107 +85,83 @@ const OnboardingTour = ({
   };
 
   const handleComplete = () => {
-    setIsCompleted(true);
-    setTimeout(() => {
-      onComplete();
-    }, 1000);
-  };
-
-  const handleSkip = () => {
+    setCurrentStep(0);
     onComplete();
   };
 
-  if (!isVisible) return null;
-
-  if (isCompleted) {
-    return (
-      <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${className}`}>
-        <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
-          <div className="text-6xl mb-4">🎉</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">Tour Complete!</h3>
-          <p className="text-gray-600 mb-6">You're ready to start using the system effectively.</p>
-          <div className="flex items-center justify-center text-green-600">
-            <CheckCircle className="h-5 w-5 mr-2" />
-            <span className="text-sm font-medium">Onboarding completed</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const currentStepData = steps[currentStep];
+  const handleSkip = () => {
+    setCurrentStep(0);
+    onComplete();
+  };
 
   return (
-    <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${className}`}>
-      <div className="bg-white rounded-2xl p-6 max-w-lg mx-4 shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-              <span className="text-blue-600 font-semibold text-sm">{currentStep + 1}</span>
-            </div>
-            <span className="text-sm text-gray-500">
-              Step {currentStep + 1} of {steps.length}
-            </span>
-          </div>
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white">{currentTour.title}</h2>
           <button
             onClick={handleSkip}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-blue-100 hover:text-white transition-colors"
           >
-            <X className="h-5 w-5" />
+            <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-          <div 
-            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-          ></div>
         </div>
 
         {/* Content */}
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            {currentStepData.title}
-          </h3>
-          <p className="text-gray-600 leading-relaxed">
-            {currentStepData.content}
-          </p>
-        </div>
+        <div className="p-6">
+          <p className="text-gray-700 mb-6">{currentTour.description}</p>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-              currentStep === 0
-                ? 'text-gray-400 cursor-not-allowed'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-            }`}
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Previous
-          </button>
-
-          <div className="flex space-x-2">
+          {/* Progress Dots */}
+          <div className="flex justify-center gap-2 mb-6">
             {steps.map((_, index) => (
               <div
                 key={index}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  index === currentStep ? 'bg-blue-600' : 'bg-gray-300'
+                className={`h-2 rounded-full transition-all ${
+                  index === currentStep
+                    ? 'w-6 bg-blue-600'
+                    : index < currentStep
+                    ? 'w-2 bg-blue-400'
+                    : 'w-2 bg-gray-300'
                 }`}
               />
             ))}
           </div>
 
+          {/* Step Counter */}
+          <p className="text-sm text-gray-500 text-center mb-4">
+            Step {currentStep + 1} of {steps.length}
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t">
+          <button
+            onClick={handlePrevious}
+            disabled={currentStep === 0}
+            className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+              currentStep === 0
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </button>
+
+          <button
+            onClick={handleSkip}
+            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-all"
+          >
+            Skip Tour
+          </button>
+
           <button
             onClick={handleNext}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all"
           >
-            {currentStep === steps.length - 1 ? 'Finish' : 'Next'}
-            {currentStep < steps.length - 1 && <ChevronRight className="h-4 w-4 ml-1" />}
+            {currentStep === steps.length - 1 ? 'Complete' : 'Next'}
+            {currentStep < steps.length - 1 && <ChevronRight className="w-4 h-4" />}
           </button>
         </div>
       </div>
