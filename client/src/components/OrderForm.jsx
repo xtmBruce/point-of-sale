@@ -1186,6 +1186,8 @@ const OrderForm = ({ onOrderCreated, onClose, isFullPage = false, modernPOS = fa
 
       const orderData = {
         customer_id: customerId,
+        shop_id: (JSON.parse(localStorage.getItem('user') || '{}') || {}).shop_id || null,
+        created_by: (JSON.parse(localStorage.getItem('user') || '{}') || {}).id || null,
         items: orderItems.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity,

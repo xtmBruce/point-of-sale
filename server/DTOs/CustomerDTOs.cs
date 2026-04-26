@@ -170,6 +170,9 @@ namespace SmartPOS.API.DTOs
 
         [JsonPropertyName("limit")]
         public int Limit { get; set; }
+
+        [JsonPropertyName("pagination")]
+        public PaginationDto? Pagination { get; set; }
     }
 
     public class CustomerStatsDto

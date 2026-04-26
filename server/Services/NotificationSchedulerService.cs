@@ -15,17 +15,18 @@ namespace SmartPOS.API.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(15));
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
                     await ProcessScheduledCampaignsAsync(stoppingToken);
+                    await ProcessBirthdayWishesAsync(stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed while processing scheduled campaigns");
+                    _logger.LogError(ex, "Failed while processing notification background jobs");
                 }
 
                 await timer.WaitForNextTickAsync(stoppingToken);
@@ -41,6 +42,18 @@ namespace SmartPOS.API.Services
             if (processed > 0)
             {
                 _logger.LogInformation("Processed {Count} scheduled campaign(s)", processed);
+            }
+        }
+
+        private async Task ProcessBirthdayWishesAsync(CancellationToken cancellationToken)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var sentCount = await notificationService.ProcessBirthdayWishesAsync(cancellationToken);
+
+            if (sentCount > 0)
+            {
+                _logger.LogInformation("Sent {Count} birthday email wish(es)", sentCount);
             }
         }
     }

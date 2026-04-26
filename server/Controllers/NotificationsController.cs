@@ -11,7 +11,6 @@ namespace SmartPOS.API.Controllers
     [Route("api/notifications")]
     public class NotificationsController : ControllerBase
     {
-        private static readonly TimeZoneInfo CentralAfricaTimeZone = ResolveCentralAfricaTimeZone();
         private readonly AppDbContext _db;
         private readonly INotificationService _notificationService;
 
@@ -220,35 +219,7 @@ namespace SmartPOS.API.Controllers
                 return value.ToUniversalTime();
             }
 
-            // Treat browser datetime-local values as Central Africa local time.
-            var unspecified = DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
-            return TimeZoneInfo.ConvertTimeToUtc(unspecified, CentralAfricaTimeZone);
-        }
-
-        private static TimeZoneInfo ResolveCentralAfricaTimeZone()
-        {
-            var candidateIds = new[]
-            {
-                "South Africa Standard Time", // Windows
-                "Africa/Harare",              // IANA
-                "Africa/Blantyre"             // IANA
-            };
-
-            foreach (var id in candidateIds)
-            {
-                try
-                {
-                    return TimeZoneInfo.FindSystemTimeZoneById(id);
-                }
-                catch (TimeZoneNotFoundException)
-                {
-                }
-                catch (InvalidTimeZoneException)
-                {
-                }
-            }
-
-            return TimeZoneInfo.Utc;
+            return DateTime.SpecifyKind(value, DateTimeKind.Local).ToUniversalTime();
         }
     }
 }

@@ -74,9 +74,46 @@ namespace SmartPOS.API.Controllers
                 .Take(limit)
                 .ToListAsync();
 
+            var result = orders.Select(o => new
+            {
+                o.Id,
+                o.OrderNumber,
+                o.Status,
+                o.PaymentMethod,
+                o.PaymentStatus,
+                o.TotalAmount,
+                o.AmountPaid,
+                o.RemainingAmount,
+                o.Subtotal,
+                o.TaxAmount,
+                o.DiscountAmount,
+                o.Currency,
+                o.Notes,
+                o.CreatedAt,
+                o.UpdatedAt,
+                o.CustomerId,
+                customer_name = o.Customer != null ? $"{o.Customer.FirstName} {o.Customer.LastName}" : null,
+                customer_email = o.Customer?.Email,
+                customer_phone = o.Customer?.Phone,
+                o.ShopId,
+                shop_name = o.Shop?.Name,
+                shop_address = o.Shop?.Address,
+                items = o.OrderItems.Select(i => new
+                {
+                    i.Id,
+                    i.ProductId,
+                    i.ProductName,
+                    i.ProductType,
+                    i.Quantity,
+                    i.UnitPrice,
+                    i.TotalPrice,
+                    i.Currency
+                })
+            });
+
             return Ok(new
             {
-                orders,
+                orders = result,
                 pagination = new
                 {
                     total,
@@ -150,6 +187,17 @@ namespace SmartPOS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
+            // Get shop_id from JWT if not provided
+            if (!request.ShopId.HasValue)
+            {
+                var subject = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value;
+                if (Guid.TryParse(subject, out var userId))
+                {
+                    var u = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+                    request.ShopId = u?.ShopId;
+                }
+            }
             var order = new Order
             {
                 CustomerId = request.CustomerId,
@@ -172,6 +220,14 @@ namespace SmartPOS.API.Controllers
                 var unitPrice = item.Price > 0 ? item.Price : item.UnitPrice;
                 var totalPrice = item.Total > 0 ? item.Total : item.Quantity * unitPrice;
 
+                // Look up product name if not provided
+                string? productName = item.ProductName;
+                if (string.IsNullOrEmpty(productName) && item.ProductId.HasValue)
+                {
+                    var prod = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    productName = prod?.Name;
+                }
+
                 var orderItem = new OrderItem
                 {
                     ProductId = item.ProductId,
@@ -179,7 +235,7 @@ namespace SmartPOS.API.Controllers
                     UnitPrice = unitPrice,
                     TotalPrice = totalPrice,
                     Currency = request.Currency ?? "RWF",
-                    ProductName = item.ProductName,
+                    ProductName = productName,
                     ProductType = item.ProductType,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -196,6 +252,31 @@ namespace SmartPOS.API.Controllers
 
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
+
+            // Deduct stock from ShopInventory
+            if (order.ShopId.HasValue)
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    if (item.ProductId == null) continue;
+                    var inv = await _context.ShopInventories
+                        .FirstOrDefaultAsync(si => si.ShopId == order.ShopId && si.ProductId == item.ProductId);
+                    if (inv != null)
+                    {
+                        inv.Quantity = Math.Max(0, inv.Quantity - item.Quantity);
+                        inv.LastUpdated = DateTime.UtcNow;
+                    }
+                    // Also deduct from product global stock
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        product.StockQuantity = Math.Max(0, product.StockQuantity - item.Quantity);
+                        product.CurrentStock = Math.Max(0, product.CurrentStock - item.Quantity);
+                        product.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(new
             {
@@ -289,6 +370,34 @@ namespace SmartPOS.API.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // GET: api/orders/stats/overview
+        [HttpGet("stats/overview")]
+        public async Task<IActionResult> GetStatsOverview([FromQuery] int period = 30)
+        {
+            var start = DateTime.UtcNow.AddDays(-period);
+
+            var totalOrders = await _context.Orders.CountAsync(o => o.CreatedAt >= start);
+            var totalRevenue = await _context.Orders.Where(o => o.CreatedAt >= start && o.Status != "cancelled").SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
+            var pendingOrders = await _context.Orders.CountAsync(o => o.Status == "pending");
+            var completedOrders = await _context.Orders.CountAsync(o => o.Status == "completed" && o.CreatedAt >= start);
+            var cancelledOrders = await _context.Orders.CountAsync(o => o.Status == "cancelled" && o.CreatedAt >= start);
+            var avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+            return Ok(new
+            {
+                stats = new
+                {
+                    total_orders = totalOrders,
+                    total_revenue = totalRevenue,
+                    pending_orders = pendingOrders,
+                    completed_orders = completedOrders,
+                    cancelled_orders = cancelledOrders,
+                    avg_order_value = avgOrderValue,
+                    period_days = period
+                }
+            });
         }
 
         // GET: api/Order/summary
