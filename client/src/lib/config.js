@@ -13,9 +13,9 @@ const isRemoteServer = typeof window !== 'undefined' &&
 const config = {
   // API Configuration
   api: {
-    // Use API subdomain for production
+    // Use environment variable for production, fallback to localhost for development
     baseURL: (import.meta.env.PROD || isRemoteServer)
-      ? 'https://api.likaships.com/api'  // Production: use API subdomain
+      ? (import.meta.env.VITE_API_URL || 'https://smartpos-retail.onrender.com/api')  // Production: use env var or default SmartPOS backend
       : (import.meta.env.VITE_API_URL || 'https://localhost:7086/api'),  // Development: use env var or local API
     timeout: 30000, // 30 seconds
   },
