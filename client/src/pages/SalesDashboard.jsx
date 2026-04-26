@@ -234,10 +234,10 @@ export default function SalesDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-700">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Users className="h-8 w-8 text-orange-600" />
+              <Users className="h-8 w-8 text-red-700" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Active Customers</p>

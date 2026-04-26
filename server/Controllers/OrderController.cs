@@ -150,61 +150,69 @@ namespace SmartPOS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-            var order = new Order
+            try
             {
-                CustomerId = request.CustomerId,
-                ShopId = request.ShopId,
-                OrderNumber = await GenerateOrderNumber(),
-                OrderType = request.OrderType ?? "regular",
-                Status = request.Status ?? (request.PaymentStatus == "pending" ? "pending" : "completed"),
-                Currency = request.Currency ?? "RWF",
-                PaymentMethod = request.PaymentMethod,
-                PaymentStatus = request.PaymentStatus ?? "complete",
-                Notes = request.Notes,
-                CreatedBy = request.CreatedBy,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            decimal subtotal = 0;
-            foreach (var item in request.Items)
-            {
-                var unitPrice = item.Price > 0 ? item.Price : item.UnitPrice;
-                var totalPrice = item.Total > 0 ? item.Total : item.Quantity * unitPrice;
-
-                var orderItem = new OrderItem
+                var order = new Order
                 {
-                    ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = unitPrice,
-                    TotalPrice = totalPrice,
+                    CustomerId = request.CustomerId,
+                    ShopId = request.ShopId,
+                    OrderNumber = await GenerateOrderNumber(),
+                    OrderType = request.OrderType ?? "regular",
+                    Status = request.Status ?? (request.PaymentStatus == "pending" ? "pending" : "completed"),
                     Currency = request.Currency ?? "RWF",
-                    ProductName = item.ProductName,
-                    ProductType = item.ProductType,
-                    CreatedAt = DateTime.UtcNow
+                    PaymentMethod = request.PaymentMethod,
+                    PaymentStatus = request.PaymentStatus ?? "complete",
+                    Notes = request.Notes,
+                    CreatedBy = request.CreatedBy,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
-                order.OrderItems.Add(orderItem);
-                subtotal += totalPrice;
+                decimal subtotal = 0;
+                foreach (var item in request.Items)
+                {
+                    var unitPrice = item.Price > 0 ? item.Price : item.UnitPrice;
+                    var totalPrice = item.Total > 0 ? item.Total : item.Quantity * unitPrice;
+
+                    var orderItem = new OrderItem
+                    {
+                        OrderId = order.Id,
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitPrice = unitPrice,
+                        TotalPrice = totalPrice,
+                        Currency = request.Currency ?? "RWF",
+                        ProductName = item.ProductName,
+                        ProductType = item.ProductType,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    order.OrderItems.Add(orderItem);
+                    subtotal += totalPrice;
+                }
+
+                order.Subtotal = request.Subtotal > 0 ? request.Subtotal : subtotal;
+                order.TaxAmount = request.TaxAmount;
+                order.TotalAmount = request.TotalAmount > 0 ? request.TotalAmount : subtotal;
+                order.AmountPaid = request.AmountPaid;
+                order.RemainingAmount = request.RemainingAmount > 0 ? request.RemainingAmount : order.TotalAmount - order.AmountPaid;
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    order_id = order.Id,
+                    order_number = order.OrderNumber,
+                    status = order.Status,
+                    total_amount = order.TotalAmount,
+                    order = order
+                });
             }
-
-            order.Subtotal = request.Subtotal > 0 ? request.Subtotal : subtotal;
-            order.TaxAmount = request.TaxAmount;
-            order.TotalAmount = request.TotalAmount > 0 ? request.TotalAmount : subtotal;
-            order.AmountPaid = request.AmountPaid;
-            order.RemainingAmount = request.RemainingAmount > 0 ? request.RemainingAmount : order.TotalAmount - order.AmountPaid;
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            catch (Exception ex)
             {
-                order_id = order.Id,
-                order_number = order.OrderNumber,
-                status = order.Status,
-                total_amount = order.TotalAmount,
-                order = order
-            });
+                return BadRequest(new { error = "Failed to create order", details = ex.Message });
+            }
         }
 
         // PUT: api/Order/5

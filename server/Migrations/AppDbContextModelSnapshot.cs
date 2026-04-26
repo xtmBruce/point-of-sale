@@ -52,7 +52,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ProcessedBy");
 
-                    b.ToTable("BottleReturns");
+                    b.ToTable("BottleReturns", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.BottleSize", b =>
@@ -90,7 +90,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("BottleSizes");
+                    b.ToTable("BottleSizes", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.BottlingBatch", b =>
@@ -179,7 +179,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("SupervisorId");
 
-                    b.ToTable("BottlingBatches");
+                    b.ToTable("BottlingBatches", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.BottlingRecipe", b =>
@@ -280,7 +280,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("BottleSizeId");
 
-                    b.ToTable("BottlingRecipes");
+                    b.ToTable("BottlingRecipes", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Brand", b =>
@@ -316,7 +316,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Brands");
+                    b.ToTable("Brands", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Category", b =>
@@ -361,7 +361,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.CostComponent", b =>
@@ -397,7 +397,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("BatchId");
 
-                    b.ToTable("CostComponents");
+                    b.ToTable("CostComponents", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.CurrencyRate", b =>
@@ -431,7 +431,7 @@ namespace SmartPOS.API.Migrations
                     b.HasIndex("FromCurrency", "ToCurrency", "RateDate")
                         .IsUnique();
 
-                    b.ToTable("CurrencyRates");
+                    b.ToTable("CurrencyRates", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Customer", b =>
@@ -496,7 +496,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.CustomerNotificationPreference", b =>
@@ -546,7 +546,7 @@ namespace SmartPOS.API.Migrations
                     b.HasIndex("CustomerId")
                         .IsUnique();
 
-                    b.ToTable("CustomerNotificationPreferences");
+                    b.ToTable("CustomerNotificationPreferences", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.ExchangeRate", b =>
@@ -574,7 +574,7 @@ namespace SmartPOS.API.Migrations
                     b.HasIndex("BaseCurrency", "TargetCurrency")
                         .IsUnique();
 
-                    b.ToTable("ExchangeRates");
+                    b.ToTable("ExchangeRates", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Expense", b =>
@@ -637,7 +637,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ShopId");
 
-                    b.ToTable("Expenses");
+                    b.ToTable("Expenses", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.ExpenseCategory", b =>
@@ -664,7 +664,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ExpenseCategories");
+                    b.ToTable("ExpenseCategories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.FinancialTransaction", b =>
@@ -708,7 +708,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("GLAccountId");
 
-                    b.ToTable("FinancialTransactions");
+                    b.ToTable("FinancialTransactions", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GLAccount", b =>
@@ -755,7 +755,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("GLAccounts");
+                    b.ToTable("GLAccounts", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GLAccountCategory", b =>
@@ -801,7 +801,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("GLAccountCategories");
+                    b.ToTable("GLAccountCategories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GLJournalEntry", b =>
@@ -846,7 +846,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CreatedBy");
 
-                    b.ToTable("GLJournalEntries");
+                    b.ToTable("GLJournalEntries", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GLJournalEntryLine", b =>
@@ -879,7 +879,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("JournalEntryId");
 
-                    b.ToTable("GLJournalEntryLines");
+                    b.ToTable("GLJournalEntryLines", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GiftCard", b =>
@@ -953,7 +953,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("GiftCards");
+                    b.ToTable("GiftCards", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GiftCardTemplate", b =>
@@ -992,7 +992,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("GiftCardTemplates");
+                    b.ToTable("GiftCardTemplates", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GiftCardTransaction", b =>
@@ -1042,7 +1042,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ShopId");
 
-                    b.ToTable("GiftCardTransactions");
+                    b.ToTable("GiftCardTransactions", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GoodsReceipt", b =>
@@ -1088,7 +1088,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("GoodsReceipts");
+                    b.ToTable("GoodsReceipts", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.GoodsReceiptItem", b =>
@@ -1134,7 +1134,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("MaterialId");
 
-                    b.ToTable("GoodsReceiptItems");
+                    b.ToTable("GoodsReceiptItems", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.InventoryTransaction", b =>
@@ -1202,7 +1202,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("WarehouseId");
 
-                    b.ToTable("InventoryTransactions");
+                    b.ToTable("InventoryTransactions", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.LoyaltyTransaction", b =>
@@ -1236,7 +1236,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("LoyaltyTransactions");
+                    b.ToTable("LoyaltyTransactions", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Notification", b =>
@@ -1297,7 +1297,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.NotificationAnalytic", b =>
@@ -1343,7 +1343,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CampaignId");
 
-                    b.ToTable("NotificationAnalytics");
+                    b.ToTable("NotificationAnalytics", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.NotificationCampaign", b =>
@@ -1409,7 +1409,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("NotificationCampaigns");
+                    b.ToTable("NotificationCampaigns", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.NotificationTemplate", b =>
@@ -1447,7 +1447,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("NotificationTemplates");
+                    b.ToTable("NotificationTemplates", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.NotificationTrigger", b =>
@@ -1483,7 +1483,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("TemplateId");
 
-                    b.ToTable("NotificationTriggers");
+                    b.ToTable("NotificationTriggers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Order", b =>
@@ -1559,7 +1559,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ShopId");
 
-                    b.ToTable("Orders");
+                    b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.OrderItem", b =>
@@ -1605,7 +1605,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("OrderItems");
+                    b.ToTable("OrderItems", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.OrderStatusLog", b =>
@@ -1639,7 +1639,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderStatusLogs");
+                    b.ToTable("OrderStatusLogs", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PerfumeBottling", b =>
@@ -1680,7 +1680,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CreatedBy");
 
-                    b.ToTable("PerfumeBottlings");
+                    b.ToTable("PerfumeBottlings", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PerfumeBulk", b =>
@@ -1727,7 +1727,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("PerfumeBulkItems");
+                    b.ToTable("PerfumeBulkItems", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PriceChangeLog", b =>
@@ -1763,7 +1763,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("PriceChangeLogs");
+                    b.ToTable("PriceChangeLogs", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Product", b =>
@@ -1863,7 +1863,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PurchaseOrder", b =>
@@ -1950,7 +1950,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("PurchaseOrders");
+                    b.ToTable("PurchaseOrders", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PurchaseOrderItem", b =>
@@ -1992,7 +1992,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("PurchaseOrderId");
 
-                    b.ToTable("PurchaseOrderItems");
+                    b.ToTable("PurchaseOrderItems", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PurchaseRequisition", b =>
@@ -2050,7 +2050,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("RequestedBy");
 
-                    b.ToTable("PurchaseRequisitions");
+                    b.ToTable("PurchaseRequisitions", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.PurchaseRequisitionItem", b =>
@@ -2086,7 +2086,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("RequisitionId");
 
-                    b.ToTable("PurchaseRequisitionItems");
+                    b.ToTable("PurchaseRequisitionItems", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.RawMaterial", b =>
@@ -2157,7 +2157,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("RawMaterials");
+                    b.ToTable("RawMaterials", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.RecipeMaterial", b =>
@@ -2184,7 +2184,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("RecipeId");
 
-                    b.ToTable("RecipeMaterials");
+                    b.ToTable("RecipeMaterials", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.RefreshToken", b =>
@@ -2225,7 +2225,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Setting", b =>
@@ -2253,7 +2253,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Settings");
+                    b.ToTable("Settings", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Shop", b =>
@@ -2303,7 +2303,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ManagerId");
 
-                    b.ToTable("Shops");
+                    b.ToTable("Shops", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.ShopInventory", b =>
@@ -2343,7 +2343,7 @@ namespace SmartPOS.API.Migrations
                     b.HasIndex("ShopId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("ShopInventories");
+                    b.ToTable("ShopInventories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.StockLedger", b =>
@@ -2389,7 +2389,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("MaterialId");
 
-                    b.ToTable("StockLedgers");
+                    b.ToTable("StockLedgers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.StockTransfer", b =>
@@ -2452,7 +2452,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("StockTransfers");
+                    b.ToTable("StockTransfers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Supplier", b =>
@@ -2518,7 +2518,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.SupplierMaterial", b =>
@@ -2566,7 +2566,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierMaterials");
+                    b.ToTable("SupplierMaterials", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.SupplierPerformance", b =>
@@ -2611,7 +2611,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierPerformances");
+                    b.ToTable("SupplierPerformances", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.User", b =>
@@ -2659,7 +2659,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.Warehouse", b =>
@@ -2714,7 +2714,7 @@ namespace SmartPOS.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Warehouses");
+                    b.ToTable("Warehouses", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.WarehouseInventory", b =>
@@ -2754,7 +2754,7 @@ namespace SmartPOS.API.Migrations
                     b.HasIndex("WarehouseId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("WarehouseInventories");
+                    b.ToTable("WarehouseInventories", (string)null);
                 });
 
             modelBuilder.Entity("SmartPOS.API.Models.BottleReturn", b =>
