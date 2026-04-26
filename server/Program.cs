@@ -9,14 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure Kestrel to listen on port 7086 with HTTPS.
 // This uses the default dev certificate when available in Development.
+var port = Environment.GetEnvironmentVariable("PORT");
+
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(7086, listenOptions =>
-    {
-        listenOptions.UseHttps();
-    });
+    options.ListenAnyIP(
+        int.Parse(port ?? "8080")
+    );
 });
-
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
