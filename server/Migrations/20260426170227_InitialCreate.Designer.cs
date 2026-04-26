@@ -12,15 +12,15 @@ using SmartPOS.API.Data;
 namespace SmartPOS.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260426153940_InitialPostgreSQLCreate")]
-    partial class InitialPostgreSQLCreate
+    [Migration("20260426170227_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "8.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);

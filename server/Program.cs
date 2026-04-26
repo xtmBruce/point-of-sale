@@ -26,7 +26,6 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy => policy
-            .WithOrigins("https://smartpos-retail.onrender.com/swagger/index.html")
             .AllowAnyMethod()
             .AllowAnyHeader()
             // Allow credentials (cookies) and permit any origin by echoing it back.
@@ -101,19 +100,20 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Automatically apply pending migrations on startup
-try
+// Seed database
+using (var scope = app.Services.CreateScope())
 {
-    using (var scope = app.Services.CreateScope())
+    var services = scope.ServiceProvider;
+    try
     {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.Migrate();
-        Console.WriteLine("✓ Database migrations applied successfully");
+        var context = services.GetRequiredService<AppDbContext>();
+        DbSeeder.SeedAsync(context).Wait();
     }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"✗ Error applying migrations: {ex.Message}");
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
 }
 
 // Configure the HTTP request pipeline.
