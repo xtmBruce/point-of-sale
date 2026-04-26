@@ -26,11 +26,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy => policy
-            .WithOrigins("https://smartpos-retail.onrender.com/swagger/index.html")
+            .WithOrigins(
+                "https://point-of-sale-wapf.onrender.com",
+                "https://smartpos-retail.onrender.com",
+                "http://localhost:5173",
+                "http://localhost:3000"
+            )
             .AllowAnyMethod()
             .AllowAnyHeader()
-            // Allow credentials (cookies) and permit any origin by echoing it back.
-            .SetIsOriginAllowed(origin => true)
             .AllowCredentials());
 });
 
