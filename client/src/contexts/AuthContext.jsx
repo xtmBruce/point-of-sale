@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
     try {
       const token = localStorage.getItem('token')
       const userData = localStorage.getItem('user')
-      if (token && userData) {
+      if (token && userData && userData !== 'undefined') {
         setUser(JSON.parse(userData))
       }
     } catch (error) {
@@ -53,12 +53,14 @@ export function AuthProvider({ children }) {
 
   const setUserFromStorage = () => {
     const userData = localStorage.getItem('user')
-    if (userData) {
+    if (userData && userData !== 'undefined') {
       try {
         setUser(JSON.parse(userData))
       } catch (error) {
         console.error('Error parsing user data:', error)
       }
+    } else {
+      setUser(null)
     }
   }
 
