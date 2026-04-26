@@ -9,23 +9,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configure Kestrel to listen on port 7086 with HTTPS.
 // This uses the default dev certificate when available in Development.
+var port = Environment.GetEnvironmentVariable("PORT");
+
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(7086, listenOptions =>
-    {
-        listenOptions.UseHttps();
-    });
+    options.ListenAnyIP(
+        int.Parse(port ?? "8080")
+    );
 });
-
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy => policy
+            .WithOrigins("https://smartpos-retail.onrender.com/swagger/index.html")
             .AllowAnyMethod()
             .AllowAnyHeader()
             // Allow credentials (cookies) and permit any origin by echoing it back.
@@ -99,6 +100,21 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Automatically apply pending migrations on startup
+try
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.Migrate();
+        Console.WriteLine("✓ Database migrations applied successfully");
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"✗ Error applying migrations: {ex.Message}");
+}
 
 // Configure the HTTP request pipeline.
 // Enable Swagger in all environments for testing

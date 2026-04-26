@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
 using SmartPOS.API.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace SmartPOS.API.Controllers
 {
@@ -16,10 +18,44 @@ namespace SmartPOS.API.Controllers
         public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int limit = 12,
             [FromQuery] string? search = null, [FromQuery] string? sortBy = "name", [FromQuery] string? sortOrder = "asc")
         {
+            var (isCashier, cashierShopId) = await GetCurrentUserContextAsync();
+
             var query = _db.Products.Where(p => p.IsActive)
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .AsQueryable();
+
+            Dictionary<Guid, ShopInventory>? assignedByProduct = null;
+            if (isCashier)
+            {
+                if (!cashierShopId.HasValue || cashierShopId == Guid.Empty)
+                {
+                    return Ok(new
+                    {
+                        products = Array.Empty<Product>(),
+                        pagination = new { total = 0, page, limit, total_pages = 0 }
+                    });
+                }
+
+                assignedByProduct = await _db.ShopInventories
+                    .AsNoTracking()
+                    .Where(si => si.ShopId == cashierShopId.Value)
+                    .GroupBy(si => si.ProductId)
+                    .Select(g => g.OrderByDescending(x => x.LastUpdated).First())
+                    .ToDictionaryAsync(si => si.ProductId, si => si);
+
+                if (assignedByProduct.Count == 0)
+                {
+                    return Ok(new
+                    {
+                        products = Array.Empty<Product>(),
+                        pagination = new { total = 0, page, limit, total_pages = 0 }
+                    });
+                }
+
+                var assignedProductIds = assignedByProduct.Keys.ToList();
+                query = query.Where(p => assignedProductIds.Contains(p.Id));
+            }
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(p => p.Name.Contains(search) || (p.Sku != null && p.Sku.Contains(search)));
@@ -35,6 +71,22 @@ namespace SmartPOS.API.Controllers
             var total = await query.CountAsync();
             var products = await query.Skip((page - 1) * limit).Take(limit).ToListAsync();
 
+            if (isCashier && assignedByProduct != null)
+            {
+                foreach (var product in products)
+                {
+                    if (!assignedByProduct.TryGetValue(product.Id, out var assignment))
+                        continue;
+
+                    product.StockQuantity = assignment.Quantity;
+                    product.CurrentStock = assignment.Quantity;
+                    product.AvailableStock = assignment.Quantity;
+                    product.MinStockLevel = assignment.MinStockLevel;
+                    product.MaxStockLevel = assignment.MaxStockLevel;
+                    product.ReorderPoint = assignment.ReorderPoint;
+                }
+            }
+
             return Ok(new
             {
                 products,
@@ -45,11 +97,58 @@ namespace SmartPOS.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
+            var (isCashier, cashierShopId) = await GetCurrentUserContextAsync();
+
             var product = await _db.Products
                 .Include(p => p.Brand)
                 .Include(p => p.Category)
                 .FirstOrDefaultAsync(p => p.Id == id);
-            return product == null ? NotFound() : Ok(product);
+
+            if (product == null)
+                return NotFound();
+
+            if (isCashier)
+            {
+                if (!cashierShopId.HasValue || cashierShopId == Guid.Empty)
+                    return NotFound();
+
+                var assignment = await _db.ShopInventories
+                    .AsNoTracking()
+                    .Where(si => si.ShopId == cashierShopId.Value && si.ProductId == id)
+                    .OrderByDescending(si => si.LastUpdated)
+                    .FirstOrDefaultAsync();
+
+                if (assignment == null)
+                    return NotFound();
+
+                product.StockQuantity = assignment.Quantity;
+                product.CurrentStock = assignment.Quantity;
+                product.AvailableStock = assignment.Quantity;
+                product.MinStockLevel = assignment.MinStockLevel;
+                product.MaxStockLevel = assignment.MaxStockLevel;
+                product.ReorderPoint = assignment.ReorderPoint;
+            }
+
+            return Ok(product);
+        }
+
+        private async Task<(bool IsCashier, Guid? ShopId)> GetCurrentUserContextAsync()
+        {
+            var role = User.FindFirstValue(ClaimTypes.Role);
+            if (!string.Equals(role, "cashier", StringComparison.OrdinalIgnoreCase))
+                return (false, null);
+
+            var subject = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(subject, out var userId))
+                return (true, null);
+
+            var user = await _db.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userId && u.IsActive)
+                .Select(u => new { u.ShopId })
+                .FirstOrDefaultAsync();
+
+            return (true, user?.ShopId);
         }
 
         [HttpPost]

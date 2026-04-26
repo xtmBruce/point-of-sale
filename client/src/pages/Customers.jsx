@@ -36,7 +36,8 @@ import {
   Lightbulb,
   Send,
   Smartphone,
-  Settings
+  Settings,
+  User
 } from 'lucide-react';
 import { customersAPI, loyaltyAPI } from '../lib/api';
 import toast from 'react-hot-toast';
@@ -499,7 +500,7 @@ export default function Customers() {
                   <p className="text-2xl font-bold text-gray-900">{nonWalkInCustomers.length}</p>
                   <p className="text-xs text-green-600 mt-1">+12% from last month</p>
                 </div>
-                <Users className="h-8 w-8 text-blue-500" />
+                <User className="h-8 w-8 text-blue-500" />
               </div>
             </div>
             

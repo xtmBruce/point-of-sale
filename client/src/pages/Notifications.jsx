@@ -48,6 +48,7 @@ const Notifications = () => {
       const response = await notificationsAPI.getAnalytics();
       return response.data;
     },
+    enabled: activeTab === 'overview',
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 60000
   });
@@ -58,7 +59,8 @@ const Notifications = () => {
     queryFn: async () => {
       const response = await notificationsAPI.getTemplates();
       return response.data;
-    }
+    },
+    enabled: activeTab === 'templates'
   });
 
   // Fetch notification campaigns
@@ -67,7 +69,10 @@ const Notifications = () => {
     queryFn: async () => {
       const response = await notificationsAPI.getCampaigns();
       return response.data;
-    }
+    },
+    enabled: activeTab === 'overview' || activeTab === 'campaigns',
+    refetchInterval: 10000,
+    staleTime: 5000
   });
 
   // Fetch notification triggers
@@ -76,7 +81,8 @@ const Notifications = () => {
     queryFn: async () => {
       const response = await notificationsAPI.getTriggers();
       return response.data;
-    }
+    },
+    enabled: activeTab === 'triggers'
   });
 
   const templates = templatesData?.templates || [];
@@ -84,34 +90,48 @@ const Notifications = () => {
   const triggers = triggersData?.triggers || [];
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    });
+    }).format(new Date(dateString));
   };
+
+  const getScheduledDate = (scheduledAt) => new Date(scheduledAt);
 
   const formatScheduleTime = (scheduledAt, status) => {
     if (!scheduledAt) return null;
     
     const now = new Date();
-    const scheduled = new Date(scheduledAt);
+    const scheduled = getScheduledDate(scheduledAt);
     const diffMs = scheduled.getTime() - now.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffHours / 24);
+    const overdueGraceMs = 5 * 60 * 1000;
+    const scheduledLabel = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(scheduled);
     
     if (status === 'scheduled') {
-      if (diffMs < 0) {
+      if (diffMs < -overdueGraceMs) {
         return { text: 'Overdue', color: 'text-red-600', icon: AlertCircle };
       } else if (diffDays > 0) {
-        return { text: `In ${diffDays} day${diffDays > 1 ? 's' : ''}`, color: 'text-blue-600', icon: Calendar };
+        return { text: `Scheduled for ${scheduledLabel}`, color: 'text-blue-600', icon: Calendar };
       } else if (diffHours > 0) {
-        return { text: `In ${diffHours} hour${diffHours > 1 ? 's' : ''}`, color: 'text-yellow-600', icon: Clock };
+        return { text: `Scheduled for ${scheduledLabel}`, color: 'text-yellow-600', icon: Clock };
       } else {
-        const diffMinutes = Math.floor(diffMs / (1000 * 60));
-        return { text: `In ${diffMinutes} min`, color: 'text-orange-600', icon: Clock };
+        const diffMinutes = Math.max(0, Math.floor(diffMs / (1000 * 60)));
+        if (diffMs <= overdueGraceMs) {
+          return { text: `Scheduled for ${scheduledLabel} (${diffMinutes} min)`, color: 'text-orange-600', icon: Clock };
+        }
+
+        return { text: `Scheduled for ${scheduledLabel}`, color: 'text-orange-600', icon: Clock };
       }
     }
     
@@ -134,6 +154,15 @@ const Notifications = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getDisplayCampaignStatus = (campaign) => {
+    const status = campaign?.status?.toLowerCase();
+    if (status === 'scheduled' && ((campaign?.sent_count || 0) > 0 || campaign?.sent_at)) {
+      return 'sent';
+    }
+
+    return campaign?.status || 'draft';
   };
 
   const getTypeIcon = (type) => {
@@ -354,6 +383,7 @@ const Notifications = () => {
             isLoading={analyticsLoading}
             campaigns={campaigns}
             formatScheduleTime={formatScheduleTime}
+            getDisplayCampaignStatus={getDisplayCampaignStatus}
           />
         )}
         
@@ -375,6 +405,7 @@ const Notifications = () => {
             searchTerm={searchTerm}
             viewMode={viewMode}
             getStatusColor={getStatusColor}
+            getDisplayCampaignStatus={getDisplayCampaignStatus}
             getCampaignTypeColor={getCampaignTypeColor}
             formatDate={formatDate}
             formatScheduleTime={formatScheduleTime}
@@ -396,7 +427,7 @@ const Notifications = () => {
 };
 
 // Overview Tab Component
-const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) => {
+const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime, getDisplayCampaignStatus }) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -410,9 +441,7 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
     );
   }
 
-  const stats = analytics?.overall_stats || {};
-  const campaignPerformance = analytics?.campaign_performance || [];
-  const typeBreakdown = analytics?.type_breakdown || [];
+  const stats = analytics?.overall_stats || analytics || {};
 
   return (
     <div className="space-y-6">
@@ -426,7 +455,7 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">Total Sent</dt>
-                <dd className="text-lg font-medium text-gray-900">{stats.total_sent || 0}</dd>
+                <dd className="text-lg font-medium text-gray-900">{stats.total_sent ?? stats.sent ?? 0}</dd>
               </dl>
             </div>
           </div>
@@ -440,7 +469,7 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">Delivered</dt>
-                <dd className="text-lg font-medium text-gray-900">{stats.total_delivered || 0}</dd>
+                <dd className="text-lg font-medium text-gray-900">{stats.total_delivered ?? stats.delivered ?? 0}</dd>
               </dl>
             </div>
           </div>
@@ -454,7 +483,7 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">Opened</dt>
-                <dd className="text-lg font-medium text-gray-900">{stats.total_opened || 0}</dd>
+                <dd className="text-lg font-medium text-gray-900">{stats.total_opened ?? stats.opened ?? 0}</dd>
               </dl>
             </div>
           </div>
@@ -468,62 +497,9 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
             <div className="ml-5 w-0 flex-1">
               <dl>
                 <dt className="text-sm font-medium text-gray-500 truncate">Clicked</dt>
-                <dd className="text-lg font-medium text-gray-900">{stats.total_clicked || 0}</dd>
+                <dd className="text-lg font-medium text-gray-900">{stats.total_clicked ?? stats.clicked ?? 0}</dd>
               </dl>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts and Tables */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Campaign Performance */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Campaign Performance</h3>
-          </div>
-          <div className="p-6">
-            {campaignPerformance.length > 0 ? (
-              <div className="space-y-4">
-                {campaignPerformance.slice(0, 5).map((campaign, index) => (
-                  <div key={campaign.campaign_name} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-900">{campaign.campaign_name}</span>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {campaign.open_rate ? `${campaign.open_rate.toFixed(1)}%` : 'N/A'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">No campaign data available</p>
-            )}
-          </div>
-        </div>
-
-        {/* Notification Type Breakdown */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Notification Type Breakdown</h3>
-          </div>
-          <div className="p-6">
-            {typeBreakdown.length > 0 ? (
-              <div className="space-y-4">
-                {typeBreakdown.map((type, index) => (
-                  <div key={type.type} className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-900 capitalize">{type.type}</span>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {type.total} sent
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">No type breakdown data available</p>
-            )}
           </div>
         </div>
       </div>
@@ -537,7 +513,7 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
           <div className="p-6">
             {(() => {
               const scheduledCampaigns = campaigns.filter(campaign => 
-                campaign.status === 'scheduled' && campaign.scheduled_at
+                getDisplayCampaignStatus(campaign)?.toLowerCase() === 'scheduled' && campaign.scheduled_at
               );
               
               if (scheduledCampaigns.length === 0) {
@@ -547,7 +523,8 @@ const OverviewTab = ({ analytics, isLoading, campaigns, formatScheduleTime }) =>
               return (
                 <div className="space-y-4">
                   {scheduledCampaigns.slice(0, 5).map((campaign) => {
-                    const scheduleInfo = formatScheduleTime(campaign.scheduled_at, campaign.status);
+                    const displayStatus = getDisplayCampaignStatus(campaign);
+                    const scheduleInfo = formatScheduleTime(campaign.scheduled_at, displayStatus);
                     return (
                       <div key={campaign.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div className="flex-1">
@@ -657,7 +634,7 @@ const TemplatesTab = ({ templates, isLoading, searchTerm, viewMode, getTypeIcon,
 };
 
 // Campaigns Tab Component
-const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusColor, getCampaignTypeColor, formatDate, formatScheduleTime }) => {
+const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusColor, getDisplayCampaignStatus, getCampaignTypeColor, formatDate, formatScheduleTime }) => {
   if (isLoading) {
     return <div className="text-center py-8">Loading campaigns...</div>;
   }
@@ -672,7 +649,9 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
     <div className="space-y-6">
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCampaigns.map((campaign) => (
+          {filteredCampaigns.map((campaign) => {
+            const displayStatus = getDisplayCampaignStatus(campaign);
+            return (
             <div key={campaign.id} className="bg-white rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow">
               <div className="p-6">
                 <div className="flex items-start justify-between">
@@ -681,9 +660,9 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
                     <p className="text-sm text-gray-500">{campaign.description}</p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                      {campaign.status}
-                      {campaign.status?.toLowerCase() === 'sent' && (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(displayStatus)}`}>
+                      {displayStatus}
+                      {displayStatus?.toLowerCase() === 'sent' && (
                         <CheckCircle className="h-4 w-4 ml-1 text-blue-600" />
                       )}
                     </span>
@@ -714,7 +693,7 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
                       <span className="text-gray-500">Scheduled:</span>
                       <div className="flex items-center space-x-1">
                         {(() => {
-                          const scheduleInfo = formatScheduleTime(campaign.scheduled_at, campaign.status);
+                          const scheduleInfo = formatScheduleTime(campaign.scheduled_at, displayStatus);
                           if (scheduleInfo) {
                             const IconComponent = scheduleInfo.icon;
                             return (
@@ -734,14 +713,17 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
                   Created: {formatDate(campaign.created_at)}
                 </div>
               </div>
-            </div>
-          ))}
+              </div>
+              );
+            })}
         </div>
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {filteredCampaigns.map((campaign) => (
-              <li key={campaign.id} className="px-6 py-4">
+              {filteredCampaigns.map((campaign) => {
+                const displayStatus = getDisplayCampaignStatus(campaign);
+                return (
+                <li key={campaign.id} className="px-6 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <h3 className="text-lg font-medium text-gray-900">{campaign.name}</h3>
@@ -749,7 +731,7 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
                     {campaign.scheduled_at && (
                       <div className="mt-1 flex items-center space-x-1 text-sm">
                         {(() => {
-                          const scheduleInfo = formatScheduleTime(campaign.scheduled_at, campaign.status);
+                          const scheduleInfo = formatScheduleTime(campaign.scheduled_at, displayStatus);
                           if (scheduleInfo) {
                             const IconComponent = scheduleInfo.icon;
                             return (
@@ -765,9 +747,9 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
                     )}
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(campaign.status)}`}>
-                      {campaign.status}
-                      {campaign.status?.toLowerCase() === 'sent' && (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(displayStatus)}`}>
+                      {displayStatus}
+                      {displayStatus?.toLowerCase() === 'sent' && (
                         <CheckCircle className="h-4 w-4 ml-1 text-blue-600" />
                       )}
                     </span>
@@ -778,7 +760,8 @@ const CampaignsTab = ({ campaigns, isLoading, searchTerm, viewMode, getStatusCol
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
       )}

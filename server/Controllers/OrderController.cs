@@ -74,9 +74,46 @@ namespace SmartPOS.API.Controllers
                 .Take(limit)
                 .ToListAsync();
 
+            var result = orders.Select(o => new
+            {
+                o.Id,
+                o.OrderNumber,
+                o.Status,
+                o.PaymentMethod,
+                o.PaymentStatus,
+                o.TotalAmount,
+                o.AmountPaid,
+                o.RemainingAmount,
+                o.Subtotal,
+                o.TaxAmount,
+                o.DiscountAmount,
+                o.Currency,
+                o.Notes,
+                o.CreatedAt,
+                o.UpdatedAt,
+                o.CustomerId,
+                customer_name = o.Customer != null ? $"{o.Customer.FirstName} {o.Customer.LastName}" : null,
+                customer_email = o.Customer?.Email,
+                customer_phone = o.Customer?.Phone,
+                o.ShopId,
+                shop_name = o.Shop?.Name,
+                shop_address = o.Shop?.Address,
+                items = o.OrderItems.Select(i => new
+                {
+                    i.Id,
+                    i.ProductId,
+                    i.ProductName,
+                    i.ProductType,
+                    i.Quantity,
+                    i.UnitPrice,
+                    i.TotalPrice,
+                    i.Currency
+                })
+            });
+
             return Ok(new
             {
-                orders,
+                orders = result,
                 pagination = new
                 {
                     total,
@@ -150,69 +187,105 @@ namespace SmartPOS.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest request)
         {
-            try
+            // Get shop_id from JWT if not provided
+            if (!request.ShopId.HasValue)
             {
-                var order = new Order
+                var subject = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value;
+                if (Guid.TryParse(subject, out var userId))
                 {
-                    CustomerId = request.CustomerId,
-                    ShopId = request.ShopId,
-                    OrderNumber = await GenerateOrderNumber(),
-                    OrderType = request.OrderType ?? "regular",
-                    Status = request.Status ?? (request.PaymentStatus == "pending" ? "pending" : "completed"),
-                    Currency = request.Currency ?? "RWF",
-                    PaymentMethod = request.PaymentMethod,
-                    PaymentStatus = request.PaymentStatus ?? "complete",
-                    Notes = request.Notes,
-                    CreatedBy = request.CreatedBy,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+                    var u = await _context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId);
+                    request.ShopId = u?.ShopId;
+                }
+            }
+            var order = new Order
+            {
+                CustomerId = request.CustomerId,
+                ShopId = request.ShopId,
+                OrderNumber = await GenerateOrderNumber(),
+                OrderType = request.OrderType ?? "regular",
+                Status = request.Status ?? (request.PaymentStatus == "pending" ? "pending" : "completed"),
+                Currency = request.Currency ?? "RWF",
+                PaymentMethod = request.PaymentMethod,
+                PaymentStatus = request.PaymentStatus ?? "complete",
+                Notes = request.Notes,
+                CreatedBy = request.CreatedBy,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-                decimal subtotal = 0;
-                foreach (var item in request.Items)
+            decimal subtotal = 0;
+            foreach (var item in request.Items)
+            {
+                var unitPrice = item.Price > 0 ? item.Price : item.UnitPrice;
+                var totalPrice = item.Total > 0 ? item.Total : item.Quantity * unitPrice;
+
+                // Look up product name if not provided
+                string? productName = item.ProductName;
+                if (string.IsNullOrEmpty(productName) && item.ProductId.HasValue)
                 {
-                    var unitPrice = item.Price > 0 ? item.Price : item.UnitPrice;
-                    var totalPrice = item.Total > 0 ? item.Total : item.Quantity * unitPrice;
-
-                    var orderItem = new OrderItem
-                    {
-                        OrderId = order.Id,
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity,
-                        UnitPrice = unitPrice,
-                        TotalPrice = totalPrice,
-                        Currency = request.Currency ?? "RWF",
-                        ProductName = item.ProductName,
-                        ProductType = item.ProductType,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    order.OrderItems.Add(orderItem);
-                    subtotal += totalPrice;
+                    var prod = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    productName = prod?.Name;
                 }
 
-                order.Subtotal = request.Subtotal > 0 ? request.Subtotal : subtotal;
-                order.TaxAmount = request.TaxAmount;
-                order.TotalAmount = request.TotalAmount > 0 ? request.TotalAmount : subtotal;
-                order.AmountPaid = request.AmountPaid;
-                order.RemainingAmount = request.RemainingAmount > 0 ? request.RemainingAmount : order.TotalAmount - order.AmountPaid;
-
-                _context.Orders.Add(order);
-                await _context.SaveChangesAsync();
-
-                return Ok(new
+                var orderItem = new OrderItem
                 {
-                    order_id = order.Id,
-                    order_number = order.OrderNumber,
-                    status = order.Status,
-                    total_amount = order.TotalAmount,
-                    order = order
-                });
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = unitPrice,
+                    TotalPrice = totalPrice,
+                    Currency = request.Currency ?? "RWF",
+                    ProductName = productName,
+                    ProductType = item.ProductType,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                order.OrderItems.Add(orderItem);
+                subtotal += totalPrice;
             }
-            catch (Exception ex)
+
+            order.Subtotal = request.Subtotal > 0 ? request.Subtotal : subtotal;
+            order.TaxAmount = request.TaxAmount;
+            order.TotalAmount = request.TotalAmount > 0 ? request.TotalAmount : subtotal;
+            order.AmountPaid = request.AmountPaid;
+            order.RemainingAmount = request.RemainingAmount > 0 ? request.RemainingAmount : order.TotalAmount - order.AmountPaid;
+
+            _context.Orders.Add(order);
+            await _context.SaveChangesAsync();
+
+            // Deduct stock from ShopInventory
+            if (order.ShopId.HasValue)
             {
-                return BadRequest(new { error = "Failed to create order", details = ex.Message });
+                foreach (var item in order.OrderItems)
+                {
+                    if (item.ProductId == null) continue;
+                    var inv = await _context.ShopInventories
+                        .FirstOrDefaultAsync(si => si.ShopId == order.ShopId && si.ProductId == item.ProductId);
+                    if (inv != null)
+                    {
+                        inv.Quantity = Math.Max(0, inv.Quantity - item.Quantity);
+                        inv.LastUpdated = DateTime.UtcNow;
+                    }
+                    // Also deduct from product global stock
+                    var product = await _context.Products.FindAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        product.StockQuantity = Math.Max(0, product.StockQuantity - item.Quantity);
+                        product.CurrentStock = Math.Max(0, product.CurrentStock - item.Quantity);
+                        product.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+                await _context.SaveChangesAsync();
             }
+
+            return Ok(new
+            {
+                order_id = order.Id,
+                order_number = order.OrderNumber,
+                status = order.Status,
+                total_amount = order.TotalAmount,
+                order = order
+            });
         }
 
         // PUT: api/Order/5
@@ -297,6 +370,34 @@ namespace SmartPOS.API.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // GET: api/orders/stats/overview
+        [HttpGet("stats/overview")]
+        public async Task<IActionResult> GetStatsOverview([FromQuery] int period = 30)
+        {
+            var start = DateTime.UtcNow.AddDays(-period);
+
+            var totalOrders = await _context.Orders.CountAsync(o => o.CreatedAt >= start);
+            var totalRevenue = await _context.Orders.Where(o => o.CreatedAt >= start && o.Status != "cancelled").SumAsync(o => (decimal?)o.TotalAmount) ?? 0;
+            var pendingOrders = await _context.Orders.CountAsync(o => o.Status == "pending");
+            var completedOrders = await _context.Orders.CountAsync(o => o.Status == "completed" && o.CreatedAt >= start);
+            var cancelledOrders = await _context.Orders.CountAsync(o => o.Status == "cancelled" && o.CreatedAt >= start);
+            var avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+            return Ok(new
+            {
+                stats = new
+                {
+                    total_orders = totalOrders,
+                    total_revenue = totalRevenue,
+                    pending_orders = pendingOrders,
+                    completed_orders = completedOrders,
+                    cancelled_orders = cancelledOrders,
+                    avg_order_value = avgOrderValue,
+                    period_days = period
+                }
+            });
         }
 
         // GET: api/Order/summary

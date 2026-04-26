@@ -219,7 +219,14 @@ const AddNotificationModal = ({ isOpen, onClose, mode = 'template' }) => {
     }
 
     try {
-      await createCampaignMutation.mutateAsync(campaignFormData);
+      const campaignPayload = {
+        ...campaignFormData,
+        scheduled_at: campaignFormData.scheduled_at
+          ? new Date(campaignFormData.scheduled_at).toISOString()
+          : ''
+      };
+
+      await createCampaignMutation.mutateAsync(campaignPayload);
     } catch (error) {
       // Error handled in mutation
     }
