@@ -116,6 +116,22 @@ catch (Exception ex)
     Console.WriteLine($"✗ Error applying migrations: {ex.Message}");
 }
 
+// Seed database
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        DbSeeder.SeedAsync(context).Wait();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
+
 // Configure the HTTP request pipeline.
 // Enable Swagger in all environments for testing
 app.UseSwagger();
