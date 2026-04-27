@@ -130,8 +130,7 @@ namespace SmartPOS.API.Controllers
             var token = Request.Cookies["refreshToken"];
             if (string.IsNullOrWhiteSpace(token))
             {
-                // clear cookie anyway
-                Response.Cookies.Append("refreshToken", "", new Microsoft.AspNetCore.Http.CookieOptions { Expires = DateTime.UtcNow.AddDays(-1), HttpOnly = true, Secure = true, SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None });
+                ClearRefreshTokenCookie();
                 return Ok(new { success = true });
             }
 
@@ -143,8 +142,7 @@ namespace SmartPOS.API.Controllers
                 _db.RefreshTokens.Update(rt);
                 await _db.SaveChangesAsync();
             }
-
-            Response.Cookies.Append("refreshToken", "", new Microsoft.AspNetCore.Http.CookieOptions { Expires = DateTime.UtcNow.AddDays(-1), HttpOnly = true, Secure = true, SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None });
+            ClearRefreshTokenCookie();
 
             return Ok(new { success = true });
         }
@@ -274,17 +272,35 @@ namespace SmartPOS.API.Controllers
 
         private void SetRefreshTokenCookie(string token, DateTime expires)
         {
-            // In development over HTTP we cannot set Secure + SameSite=None (browsers will reject).
-            // Use Secure=True and SameSite=None when request is HTTPS (production). For HTTP (dev) use Lax and Secure=false.
-            var isHttps = Request?.IsHttps ?? false;
+            var useSecureCookies = ShouldUseSecureCookies();
             var cookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
             {
                 HttpOnly = true,
                 Expires = expires,
-                Secure = isHttps,
-                SameSite = isHttps ? Microsoft.AspNetCore.Http.SameSiteMode.None : Microsoft.AspNetCore.Http.SameSiteMode.Lax
+                Secure = useSecureCookies,
+                SameSite = useSecureCookies ? Microsoft.AspNetCore.Http.SameSiteMode.None : Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                Path = "/"
             };
             Response.Cookies.Append("refreshToken", token, cookieOptions);
+        }
+
+        private void ClearRefreshTokenCookie()
+        {
+            var useSecureCookies = ShouldUseSecureCookies();
+            Response.Cookies.Append("refreshToken", "", new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddDays(-1),
+                HttpOnly = true,
+                Secure = useSecureCookies,
+                SameSite = useSecureCookies ? Microsoft.AspNetCore.Http.SameSiteMode.None : Microsoft.AspNetCore.Http.SameSiteMode.Lax,
+                Path = "/"
+            });
+        }
+
+        private static bool ShouldUseSecureCookies()
+        {
+            var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            return !string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase);
         }
 
         private static string HashPassword(string password)
