@@ -96,13 +96,14 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config
+    const isRefreshEndpoint = originalRequest?.url?.includes('/auth/refresh')
     
     // Don't show error toasts for blob responses (like PDF downloads)
     const isBlob = error.config?.responseType === 'blob'
     const isNetworkError = !error.response
 
-    // Handle 401 - try to refresh token
-    if (error.response?.status === 401 && !originalRequest._retry && !isNetworkError) {
+    // Handle 401 - try to refresh token (but not on refresh endpoint itself or if already retried)
+    if (error.response?.status === 401 && !originalRequest._retry && !isNetworkError && !isRefreshEndpoint) {
       originalRequest._retry = true
       
       try {
@@ -120,7 +121,7 @@ api.interceptors.response.use(
           return api(originalRequest)
         }
       } catch (refreshError) {
-        // Refresh failed, redirect to login
+        // Refresh failed, redirect to login (only once)
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         window.location.href = '/login'
@@ -128,14 +129,12 @@ api.interceptors.response.use(
           toast.error('Session expired. Please login again.')
         }
       }
-    } else if (error.response?.status === 401) {
-      // No retry or network error - just redirect to login
+    } else if (error.response?.status === 401 && !isBlob) {
+      // Direct 401 or already retried - redirect to login
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
-      if (!isBlob) {
-        toast.error('Session expired. Please login again.')
-      }
+      toast.error('Session expired. Please login again.')
     } else if (error.response?.data?.error && !isBlob) {
       toast.error(error.response.data.error)
     } else if (!isBlob && !isNetworkError) {
