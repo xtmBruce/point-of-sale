@@ -2,7 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
 using SmartPOS.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using System.Text;
 using SmartPOS.API.Services;
 
@@ -18,9 +20,21 @@ builder.WebHost.ConfigureKestrel(options =>
         int.Parse(port ?? "8080")
     );
 });
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+var connectionString = ResolveConnectionString(builder.Configuration);
+var connectionInfo = new NpgsqlConnectionStringBuilder(connectionString);
+Console.WriteLine($"Database host: {connectionInfo.Host}, DB: {connectionInfo.Database}, SSL mode: {connectionInfo.SslMode}");
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+        npgsqlOptions.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null)));
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -126,6 +140,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+app.UseForwardedHeaders();
 
 // Automatically apply pending migrations on startup
 try
@@ -182,3 +197,73 @@ app.MapGet("/", () => Results.Redirect("/swagger"));
 app.MapControllers();
 
 app.Run();
+
+static string ResolveConnectionString(IConfiguration configuration)
+{
+    var rawConnectionString =
+        Environment.GetEnvironmentVariable("DATABASE_URL") ??
+        Environment.GetEnvironmentVariable("POSTGRES_URL") ??
+        Environment.GetEnvironmentVariable("POSTGRESQL_URL") ??
+        configuration.GetConnectionString("DefaultConnection");
+
+    if (string.IsNullOrWhiteSpace(rawConnectionString))
+        throw new InvalidOperationException("Database connection string is not configured. Set DATABASE_URL or ConnectionStrings:DefaultConnection.");
+
+    if (rawConnectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+        rawConnectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        return ConvertPostgresUrlToConnectionString(rawConnectionString);
+    }
+
+    var builder = new NpgsqlConnectionStringBuilder(rawConnectionString);
+    ApplySslDefaults(builder);
+    return builder.ConnectionString;
+}
+
+static string ConvertPostgresUrlToConnectionString(string databaseUrl)
+{
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty,
+        Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+        Database = uri.AbsolutePath.TrimStart('/'),
+        Pooling = true
+    };
+
+    var query = uri.Query.TrimStart('?')
+        .Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    foreach (var queryEntry in query)
+    {
+        var keyValue = queryEntry.Split('=', 2);
+        if (keyValue.Length != 2)
+            continue;
+
+        var key = keyValue[0];
+        var value = Uri.UnescapeDataString(keyValue[1]);
+
+        if (key.Equals("sslmode", StringComparison.OrdinalIgnoreCase) &&
+            Enum.TryParse<SslMode>(value, true, out var sslMode))
+        {
+            builder.SslMode = sslMode;
+        }
+    }
+
+    ApplySslDefaults(builder);
+    return builder.ConnectionString;
+}
+
+static void ApplySslDefaults(NpgsqlConnectionStringBuilder builder)
+{
+    var host = builder.Host?.Trim().ToLowerInvariant();
+    var isLocalHost = host is "localhost" or "127.0.0.1" or "::1";
+    if (isLocalHost)
+        return;
+
+    if (builder.SslMode is SslMode.Disable or SslMode.Prefer)
+        builder.SslMode = SslMode.Require;
+}

@@ -45,13 +45,46 @@ const createMockResponse = (url, method = 'GET', payload = null) => {
     config: { url, payload, isMock: true },
   };
 };
+const isMockFallbackEnabled = import.meta.env.DEV
+let refreshTokenPromise = null
+let isRedirectingToLogin = false
+let sessionExpiredToastShown = false
+
+const redirectToLogin = (showToast = true) => {
+  if (!isRedirectingToLogin) {
+    isRedirectingToLogin = true
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    if (showToast && !sessionExpiredToastShown) {
+      sessionExpiredToastShown = true
+      toast.error('Session expired. Please login again.')
+    }
+
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.href = '/login'
+    }
+  }
+}
+
+const requestTokenRefresh = async () => {
+  if (!refreshTokenPromise) {
+    refreshTokenPromise = axios.post(`${config.api.baseURL}/auth/refresh`, {}, {
+      withCredentials: true,
+      headers: { 'Content-Type': 'application/json' },
+    }).finally(() => {
+      refreshTokenPromise = null
+    })
+  }
+
+  return refreshTokenPromise
+}
 
 export async function fetchData(url, requestFn, method = 'GET', payload = null) {
   try {
     const response = await requestFn()
     return response
   } catch (error) {
-    if (error.response) {
+    if (error.response || !isMockFallbackEnabled) {
       throw error
     }
 
@@ -96,45 +129,45 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config
+    if (!originalRequest) {
+      return Promise.reject(error)
+    }
     const isRefreshEndpoint = originalRequest?.url?.includes('/auth/refresh')
     
     // Don't show error toasts for blob responses (like PDF downloads)
     const isBlob = error.config?.responseType === 'blob'
     const isNetworkError = !error.response
+    const hasToken = !!localStorage.getItem('token')
+    const isUnauthorized = error.response?.status === 401
 
     // Handle 401 - try to refresh token (but not on refresh endpoint itself or if already retried)
-    if (error.response?.status === 401 && !originalRequest._retry && !isNetworkError && !isRefreshEndpoint) {
+    if (isUnauthorized && !originalRequest._retry && !isNetworkError && !isRefreshEndpoint && hasToken) {
       originalRequest._retry = true
       
       try {
-        // Attempt to refresh the token
-        const refreshResponse = await api.post('/auth/refresh')
-        if (refreshResponse.data?.token) {
-          // Update token and retry original request
-          localStorage.setItem('token', refreshResponse.data.token)
-          if (refreshResponse.data.user) {
-            localStorage.setItem('user', JSON.stringify(refreshResponse.data.user))
-          }
-          
-          // Update the Authorization header and retry
-          originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`
-          return api(originalRequest)
+        const refreshResponse = await requestTokenRefresh()
+        const token = refreshResponse.data?.token
+        if (!token) {
+          throw new Error('Token refresh did not return a token')
         }
+
+        localStorage.setItem('token', token)
+        if (refreshResponse.data.user) {
+          localStorage.setItem('user', JSON.stringify(refreshResponse.data.user))
+        }
+
+        originalRequest.headers = originalRequest.headers || {}
+        originalRequest.headers.Authorization = `Bearer ${token}`
+        sessionExpiredToastShown = false
+        return api(originalRequest)
       } catch (refreshError) {
-        // Refresh failed, redirect to login (only once)
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        window.location.href = '/login'
         if (!isBlob) {
-          toast.error('Session expired. Please login again.')
+          redirectToLogin(true)
         }
       }
-    } else if (error.response?.status === 401 && !isBlob) {
+    } else if (isUnauthorized && !isBlob) {
       // Direct 401 or already retried - redirect to login
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      window.location.href = '/login'
-      toast.error('Session expired. Please login again.')
+      redirectToLogin(true)
     } else if (error.response?.data?.error && !isBlob) {
       toast.error(error.response.data.error)
     } else if (!isBlob && !isNetworkError) {
