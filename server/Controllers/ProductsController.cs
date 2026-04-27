@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
 using SmartPOS.API.Models;
+using SmartPOS.API.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -163,31 +164,33 @@ namespace SmartPOS.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, Product updated)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest updated)
         {
             var product = await _db.Products.FindAsync(id);
             if (product == null) return NotFound();
-            product.Name = updated.Name;
-            product.Description = updated.Description;
-            product.Sku = updated.Sku;
-            product.Barcode = updated.Barcode;
-            product.BrandId = updated.BrandId;
-            product.CategoryId = updated.CategoryId;
-            product.ProductType = updated.ProductType;
-            product.Size = updated.Size;
-            product.Color = updated.Color;
-            product.Variant = updated.Variant;
-            product.Price = updated.Price;
-            product.CostPrice = updated.CostPrice;
-            product.Currency = updated.Currency;
-            product.MinStockLevel = updated.MinStockLevel;
-            product.MaxStockLevel = updated.MaxStockLevel;
-            product.ReorderPoint = updated.ReorderPoint;
-            product.Unit = updated.Unit;
-            product.Weight = updated.Weight;
-            product.Dimensions = updated.Dimensions;
-            product.ImageUrl = updated.ImageUrl;
-            product.IsActive = updated.IsActive;
+            
+            if (updated.Name != null) product.Name = updated.Name;
+            if (updated.Description != null) product.Description = updated.Description;
+            if (updated.Sku != null) product.Sku = updated.Sku;
+            if (updated.Barcode != null) product.Barcode = updated.Barcode;
+            if (updated.BrandId.HasValue) product.BrandId = updated.BrandId;
+            if (updated.CategoryId.HasValue) product.CategoryId = updated.CategoryId;
+            if (updated.ProductType != null) product.ProductType = updated.ProductType;
+            if (updated.Size != null) product.Size = updated.Size;
+            if (updated.Color != null) product.Color = updated.Color;
+            if (updated.Variant != null) product.Variant = updated.Variant;
+            if (updated.Price.HasValue) product.Price = updated.Price.Value;
+            if (updated.CostPrice.HasValue) product.CostPrice = updated.CostPrice;
+            if (updated.Currency != null) product.Currency = updated.Currency;
+            if (updated.MinStockLevel.HasValue) product.MinStockLevel = updated.MinStockLevel.Value;
+            if (updated.MaxStockLevel.HasValue) product.MaxStockLevel = updated.MaxStockLevel;
+            if (updated.ReorderPoint.HasValue) product.ReorderPoint = updated.ReorderPoint.Value;
+            if (updated.Unit != null) product.Unit = updated.Unit;
+            if (updated.Weight.HasValue) product.Weight = updated.Weight;
+            if (updated.Dimensions != null) product.Dimensions = updated.Dimensions;
+            if (updated.ImageUrl != null) product.ImageUrl = updated.ImageUrl;
+            if (updated.IsActive.HasValue) product.IsActive = updated.IsActive.Value;
+            
             product.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             return Ok(product);

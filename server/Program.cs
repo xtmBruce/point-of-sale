@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartPOS.API.Data;
+using SmartPOS.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -34,7 +35,8 @@ builder.Services.AddCors(options =>
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials());
+            .AllowCredentials()
+            .WithExposedHeaders("Content-Disposition", "Content-Type", "X-Pagination"));
 });
 
 // Configure JWT authentication
@@ -62,6 +64,27 @@ builder.Services.AddAuthentication(options =>
             ValidAudience = audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+        
+        // Handle CORS preflight and 401 responses
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = context =>
+            {
+                context.HandleResponse();
+                if (!context.Response.HasStarted)
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsJsonAsync(new { error = "Unauthorized" });
+                }
+                return System.Threading.Tasks.Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"Authentication failed: {context.Exception.Message}");
+                return System.Threading.Tasks.Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddControllers()
@@ -71,6 +94,14 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
+
+// Add Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHostedService<NotificationSchedulerService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -140,11 +171,16 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseCors("AllowReactApp"); // Apply CORS 
+// Add global exception handling middleware
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Apply CORS middleware BEFORE authentication/authorization
+app.UseCors("AllowReactApp");
 
 // Comment out HTTPS redirect for now to avoid the warning
 // app.UseHttpsRedirection();
 
+// Authentication and Authorization after CORS
 app.UseAuthentication();
 app.UseAuthorization();
 

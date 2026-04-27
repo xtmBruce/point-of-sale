@@ -9,6 +9,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,  // Enable sending cookies with cross-origin requests
 })
 
 const createMockResponse = (url, method = 'GET', payload = null) => {
@@ -93,12 +94,42 @@ api.interceptors.response.use(
   (response) => {
     return response
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config
+    
     // Don't show error toasts for blob responses (like PDF downloads)
-    const isBlob = error.config?.responseType === 'blob';
-    const isNetworkError = !error.response;
+    const isBlob = error.config?.responseType === 'blob'
+    const isNetworkError = !error.response
 
-    if (error.response?.status === 401) {
+    // Handle 401 - try to refresh token
+    if (error.response?.status === 401 && !originalRequest._retry && !isNetworkError) {
+      originalRequest._retry = true
+      
+      try {
+        // Attempt to refresh the token
+        const refreshResponse = await api.post('/auth/refresh')
+        if (refreshResponse.data?.token) {
+          // Update token and retry original request
+          localStorage.setItem('token', refreshResponse.data.token)
+          if (refreshResponse.data.user) {
+            localStorage.setItem('user', JSON.stringify(refreshResponse.data.user))
+          }
+          
+          // Update the Authorization header and retry
+          originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.token}`
+          return api(originalRequest)
+        }
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
+        if (!isBlob) {
+          toast.error('Session expired. Please login again.')
+        }
+      }
+    } else if (error.response?.status === 401) {
+      // No retry or network error - just redirect to login
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
